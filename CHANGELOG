@@ -53,6 +53,17 @@ Voidface 0.1.47 through 0.1.57 — 2026-07-05 — Phase R7.79 through R7.89
     Suite is 252 unit + 3 integration tests. Session commit
     total: 152.
 
+    Follow-ons after R7.96:
+
+    * R7.97 CHANGELOG entry for R7.93-R7.96.
+    * R7.98 voidface package --dry-run — preview the planned
+      bundle contents (artifact list, name, calibration dir,
+      coreml flag) without running the expensive exports. 3 tests.
+    * R7.99 release.md runbook mentions `--dry-run` in Step 3.
+
+    Suite is 255 unit + 3 integration tests. Session commit
+    total: 155.
+
 
 Voidface 0.1.34 through 0.1.46 — 2026-07-05 — Phase R7.66 through R7.78
 
