@@ -243,6 +243,14 @@ def run(args: argparse.Namespace) -> int:  # noqa: PLR0911
         )
         return 2
 
+    if getattr(args, "iris_boost", False) and args.iris_ratio < 1.0:
+        log.error(
+            "iris_ratio.below_one",
+            got=args.iris_ratio,
+            hint="--iris-ratio must be >= 1.0 (1.0 means no boost)",
+        )
+        return 2
+
     device = resolve_device(args.device)
     log.info("device.selected", device=str(device))
 

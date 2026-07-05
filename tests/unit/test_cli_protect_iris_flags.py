@@ -53,3 +53,17 @@ def test_dump_iris_mask_accepts_path(parser: argparse.ArgumentParser) -> None:
         ["protect", "input.jpg", "--iris-boost", "--dump-iris-mask", "out/mask.png"]
     )
     assert args.dump_iris_mask == Path("out/mask.png")
+
+
+def test_iris_ratio_below_one_rejected(tmp_path) -> None:  # noqa: ANN001
+    """`--iris-ratio 0.5` is nonsensical (would shrink budget); return 2."""
+    from voidface_cli.main import main
+
+    img = tmp_path / "x.png"
+    img.write_bytes(b"not a real image")  # File exists so we reach validation.
+    rc = main(
+        [
+            "protect", str(img), "--iris-boost", "--iris-ratio", "0.5",
+        ]
+    )
+    assert rc == 2
