@@ -1,6 +1,77 @@
 Voidface changelog. Newest at the top. Time flows downward.
 
 
+Voidface 0.0.7 — 2026-07-05 — Phase R4.4: real RetinaFace-R50 + purge stand-ins
+
+    The face-detector target moves from a Phase R1 MTCNN-PNet stand-in
+    to real RetinaFace — the SSH/FPN detector InsightFace ships in the
+    buffalo_l bundle and that every mainstream face-swap workflow
+    reaches for. Suppressing RetinaFace's face-present logit is
+    Voidface's single most valuable adversarial signal, because the
+    detector is the one pipeline stage no face restorer can compensate
+    for.
+
+    Vendored architecture:
+
+    * src/voidface/models/detectors/_retinaface_arch.py — RetinaFace-R50
+      arch vendored from biubug6/Pytorch_Retinaface (MIT). SPDX header
+      + modification note. Modifications:
+        - Removed the MobileNetV1(0.25) backbone path; we only ship the
+          ResNet-50 variant.
+        - Removed the `phase` argument from RetinaFace.forward. Voidface
+          ALWAYS returns raw pre-softmax classification logits so the
+          TargetOutputs.logits field is truthful (R4 correctness
+          critic caught the phase-gated softmax ambiguity).
+        - Type-annotated, ruff-formatted.
+      State dicts from yakhyo/retinaface-pytorch load bit-for-bit.
+    * LICENSES/MIT-biubug6-retinaface.txt — full MIT license text.
+
+    Wrapper (models/detectors/retinaface.py):
+
+    * RetinaFace(nn.Module) — differentiable RetinaFace-R50 detector.
+    * Weight fetch from yakhyo/retinaface-pytorch (109 MB) via
+      huggingface_hub.
+    * DataParallel-prefix state-dict remap (strip ``module.``).
+    * Input adaptation matches upstream training: [0, 1] RGB ->
+      antialias-resize to 640 -> multiply by 255 -> BGR flip ->
+      subtract per-channel mean (104, 117, 123). No /255 divide.
+    * Output: TargetOutputs.logits is (N, num_anchors, 2) RAW
+      pre-softmax; face-present logit is [..., 1]. TargetOutputs.aux
+      carries bbox_regressions and landmarks for later use by the
+      GFPGAN aligner in R4.5.
+
+    Purge of Phase R1 stand-ins:
+
+    * models/detectors/mtcnn_pnet.py — deleted.
+    * models/recognizers/facenet.py — deleted.
+    * pyproject.toml — facenet-pytorch removed from [train]. The two
+      real surrogates (Arcface, RetinaFace) both fetch weights via
+      huggingface_hub without any face-specific pip dep.
+
+    CLI:
+
+    * 'detector' target now loads RetinaFace instead of MtcnnPnet.
+
+    Tests:
+
+    * tests/unit/test_retinaface_smoke.py — module import, spec, arch
+      instantiation + forward-to-expected-shape, a specific
+      raw-logits-not-softmax'd assertion (per R4 critic), and a
+      monkey-patched wrapper test that verifies the exact upstream
+      pixel prep: BGR flip, x255, per-channel mean subtraction with
+      pixel values in the right range.
+    * Suite is 37 tests, all passing.
+
+    R4 recap so far:
+
+    * R4.1 ✅ shared VAE bypass loader
+    * R4.2 ✅ SDXL VAE surrogate
+    * R4.3 ✅ real ArcFace / IResNet-100
+    * R4.4 ✅ real RetinaFace-R50 (this commit)
+    * R4.5 — GFPGAN in the bilevel loop (headline) — next
+    * R4.6 — OpenCLIP ViT-B/32 — after R4.5
+
+
 Voidface 0.0.6 — 2026-07-05 — Phase R4.3: real ArcFace / IResNet-100
 
     The face-recognizer target moves from a Phase R1 FaceNet stand-in

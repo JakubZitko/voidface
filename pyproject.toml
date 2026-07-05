@@ -57,11 +57,6 @@ train = [
     "lpips>=0.1.4",
     "pytorch-msssim>=1.0",
     "opencv-python-headless>=4.9",
-    # Phase R1 model surrogates. facenet-pytorch gives us a differentiable
-    # PNet (first-stage MTCNN) as a stand-in detector and InceptionResnetV1
-    # as a stand-in identity encoder. Both auto-download weights on first
-    # use. Phase R3 replaces both with in-house ArcFace/RetinaFace impls.
-    "facenet-pytorch>=2.6.0",
     # Phase R2 additions. diffusers ships the Stable Diffusion 1.5 VAE
     # standalone; huggingface_hub caches weights. Neither depends on
     # facexlib or numba. Pin diffusers below the release line that

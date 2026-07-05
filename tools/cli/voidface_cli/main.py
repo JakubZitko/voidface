@@ -136,7 +136,6 @@ def _cmd_protect(args: argparse.Namespace) -> int:
     )
     from voidface.core.pgd import PgdConfig, run_pgd
     from voidface.eval.perceptual import load_lpips, psnr, ssim
-    from voidface.models.detectors.mtcnn_pnet import MtcnnPnet
     from voidface.models.restorers.identity import IdentityRestorer
     from voidface.models.restorers.sampler import RestorerSampler, SamplerConfig
     from voidface.util.image import load_image, save_image
@@ -177,8 +176,10 @@ def _cmd_protect(args: argparse.Namespace) -> int:
     weights_targets: dict[str, float] = {}
 
     if "detector" in selected:
-        log.info("model.detector.loading", name="mtcnn-pnet")
-        detector = MtcnnPnet(device=device)
+        from voidface.models.detectors.retinaface import RetinaFace
+
+        log.info("model.detector.loading", name="retinaface-r50")
+        detector = RetinaFace(device=device)
         target_losses["detector"] = (detector, retinaface_suppression_loss)
         weights_targets["detector"] = 0.35
 
