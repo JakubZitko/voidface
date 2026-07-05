@@ -39,6 +39,8 @@ def main(argv: Sequence[str] | None = None) -> int:
         return _cmd_train(args)
     if args.command == "export":
         return _cmd_export(args)
+    if args.command == "bench":
+        return _cmd_bench(args)
 
     parser.print_help(sys.stderr)
     return 2
@@ -168,6 +170,31 @@ def _build_parser() -> argparse.ArgumentParser:
             "Also emit a .ort file (ONNX Runtime Web format) in the output "
             "directory. Used by the browser demo for faster startup."
         ),
+    )
+
+    p_bench = sub.add_parser(
+        "bench",
+        help="Benchmark a trained G against a folder of face images.",
+    )
+    p_bench.add_argument("checkpoint", type=Path, help="Path to a trained .pt checkpoint.")
+    p_bench.add_argument("images", type=Path, help="Directory of test images.")
+    p_bench.add_argument(
+        "--device",
+        type=str,
+        default="auto",
+        help="Torch device: 'auto', 'cpu', 'cuda', 'mps' (default auto).",
+    )
+    p_bench.add_argument(
+        "--detection-threshold",
+        type=float,
+        default=0.5,
+        help="Face-present threshold for detection ASR (default 0.5).",
+    )
+    p_bench.add_argument(
+        "--resolution",
+        type=int,
+        default=256,
+        help="Side length in pixels each test image is resized to (default 256).",
     )
 
     return parser
@@ -385,6 +412,62 @@ def _cmd_report(args: argparse.Namespace) -> int:
 
 
 _ALLOWED_RESTORERS = {"identity", "sd15-vae", "gfpgan"}
+
+
+def _cmd_bench(args: argparse.Namespace) -> int:
+    """Benchmark a trained generator against a folder of test images."""
+    import torch
+
+    from voidface.data.datasets import FolderImageDataset
+    from voidface.eval.benchmark import BenchConfig, run_bench
+    from voidface.generator.architecture import Voidface, VoidfaceConfig
+    from voidface.models.detectors.retinaface import RetinaFace
+    from voidface.models.recognizers.arcface import Arcface
+    from voidface.util.log import configure_logging, get_logger
+
+    configure_logging(level="INFO")
+    log = get_logger("voidface.cli.bench")
+    device = _resolve_device(args.device)
+
+    log.info("checkpoint.loading", path=str(args.checkpoint))
+    payload = torch.load(args.checkpoint, map_location="cpu", weights_only=False)
+    if isinstance(payload, dict) and "state_dict" in payload:
+        state_dict = payload["state_dict"]
+        stored_config = payload.get("config")
+        config = stored_config if isinstance(stored_config, VoidfaceConfig) else VoidfaceConfig()
+    else:
+        state_dict = payload
+        config = VoidfaceConfig()
+    generator = Voidface(config).eval()
+    generator.load_state_dict(state_dict)
+
+    log.info("dataset.loading", directory=str(args.images), resolution=args.resolution)
+    dataset = FolderImageDataset(args.images, resolution=args.resolution, augment=False)
+    log.info("dataset.loaded", size=len(dataset))
+
+    log.info("model.detector.loading", name="retinaface-r50")
+    detector = RetinaFace(device=device)
+    log.info("model.recognizer.loading", name="arcface-r100")
+    recognizer = Arcface(device=device)
+
+    summary = run_bench(
+        generator=generator,
+        images=(dataset[i] for i in range(len(dataset))),
+        detector=detector,
+        recognizer=recognizer,
+        config=BenchConfig(
+            device=str(device),
+            detection_threshold=args.detection_threshold,
+        ),
+    )
+
+    print("--- bench summary ---")
+    print(f"images:          {summary.count}")
+    print(f"detection ASR:   {summary.detection_asr(args.detection_threshold):.4f}")
+    print(f"identity cos+1:  {summary.mean_identity_cosine_plus_one:.4f}  (0=success, 2=failure)")
+    print(f"PSNR (mean):     {summary.mean_psnr_db:.2f} dB")
+    print(f"SSIM (mean):     {summary.mean_ssim:.4f}")
+    return 0
 
 
 def _cmd_export(args: argparse.Namespace) -> int:
