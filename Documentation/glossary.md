@@ -128,6 +128,18 @@ generator learns to be robust against all of them.
 
 See: `Documentation/models/restorers.md`.
 
+## Iris boost
+
+A composable extension to pixel PGD: the iris region gets a locally
+higher L-infinity budget (default 2× epsilon) while the rest of the
+image stays at the standard budget. Motivation: face recognizers
+assign heavy weight to iris texture, but humans do not perceive
+sub-millimeter iris changes at ordinary viewing distance, so this
+is budget the eye pays back to the attacker without visual cost.
+
+See: `Documentation/attacks/iris.md`,
+`src/voidface/attacks/iris.py`, `voidface protect --iris-boost`.
+
 ## Semantic warp
 
 The geometric attack that composes with the pixel PGD. Instead of

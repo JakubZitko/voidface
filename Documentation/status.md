@@ -128,8 +128,9 @@ correctly skipped on non-Apple-Silicon. Version 0.1.0 tagged.
 - Semantic geometric warp — R7.1 shipped standalone; R7.3 composed
   into `run_pgd`. Sub-2-px displacement bounded, Gaussian-smoothed,
   grid_sample-applied.
-- Iris attack — Documentation/attacks/iris.md scoped but not
-  implemented; requires landmark detection.
+- Iris attack — R7.74-R7.77 shipped. `iris_region_mask` helper,
+  `run_pgd(iris_mask=..., iris_epsilon_ratio=...)`, and
+  `voidface protect --iris-boost / --iris-ratio` all wired.
 
 **EOT (transform distribution during training):**
 
