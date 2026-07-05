@@ -661,6 +661,17 @@ def _build_parser() -> argparse.ArgumentParser:
         default="voidface",
         help="Model name used for file stems (default 'voidface').",
     )
+    p_pkg.add_argument(
+        "--dry-run",
+        action="store_true",
+        default=False,
+        help=(
+            "Print the planned bundle contents (artifact names + input "
+            "settings) and exit without actually running any exports. "
+            "Useful for verifying --calibration-dir / --coreml / --name "
+            "before a long real run."
+        ),
+    )
 
     return parser
 

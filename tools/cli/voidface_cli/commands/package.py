@@ -33,6 +33,26 @@ def run(args: argparse.Namespace) -> int:
         )
         return 2
 
+    if getattr(args, "dry_run", False):
+        planned = ["onnx (fp32)", "int8 (dynamic)"]
+        if args.calibration_dir is not None:
+            planned.append("static-int8")
+        planned.append("ort (best-effort)")
+        if args.coreml:
+            planned.append("coreml (.mlpackage; Apple Silicon only)")
+        planned.append("CHECKSUMS.sha256 + MANIFEST.json + README")
+        print("--- package dry run ---")
+        print(f"checkpoint:        {args.checkpoint}")
+        print(f"output_dir:        {args.output_dir}")
+        print(f"name:              {args.name}")
+        print(f"example_resolution:{args.example_resolution}")
+        print(f"calibration_dir:   {args.calibration_dir or '(none)'}")
+        print("planned artifacts:")
+        for item in planned:
+            print(f"  - {item}")
+        print("Dry run complete — no exports executed.")
+        return 0
+
     args.output_dir.mkdir(parents=True, exist_ok=True)
     log.info("package.start", output_dir=str(args.output_dir))
 
