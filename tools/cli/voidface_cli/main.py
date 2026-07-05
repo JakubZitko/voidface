@@ -200,6 +200,17 @@ def _build_parser() -> argparse.ArgumentParser:
             "refinement. Requires the ensemble to be loaded (--targets)."
         ),
     )
+    p_protect.add_argument(
+        "--show-metrics",
+        action="store_true",
+        help=(
+            "After protecting, run the real RetinaFace + ArcFace targets "
+            "on both the original and the protected image and print the "
+            "attack metrics inline (detection score before/after, ArcFace "
+            "cosine displacement, PSNR, SSIM). Requires network access on "
+            "first use for weight downloads."
+        ),
+    )
 
     p_report = sub.add_parser(
         "report",
@@ -828,6 +839,8 @@ def _protect_via_generator(args: argparse.Namespace, clean, log) -> int:  # noqa
     )
     log.info("image.saved", path=str(output))
     _print_summary(clean=clean, adversarial=adversarial, output=output)
+    if getattr(args, "show_metrics", False):
+        _print_attack_metrics(clean=clean, adversarial=adversarial, log=log)
     return 0
 
 
@@ -1983,6 +1996,35 @@ def _renormalize(weights: dict[str, float]) -> None:
         return
     for k in weights:
         weights[k] /= total
+
+
+def _print_attack_metrics(clean, adversarial, log) -> None:  # noqa: ANN001
+    """Run the real ensemble on both clean and protected and print ASR-style metrics."""
+    import torch
+    import torch.nn.functional as F  # noqa: N812
+
+    from voidface.eval.benchmark import _detection_face_score
+
+    log.info("metrics.model.detector.loading", name="retinaface-r50")
+    from voidface.models.detectors.retinaface import RetinaFace
+
+    detector = RetinaFace(device=clean.device)
+    log.info("metrics.model.recognizer.loading", name="arcface-r100")
+    from voidface.models.recognizers.arcface import Arcface
+
+    recognizer = Arcface(device=clean.device)
+
+    with torch.no_grad():
+        det_before = _detection_face_score(detector(clean))
+        det_after = _detection_face_score(detector(adversarial))
+        clean_id = recognizer(clean).embedding
+        adv_id = recognizer(adversarial).embedding
+        assert clean_id is not None and adv_id is not None
+        cos = F.cosine_similarity(clean_id, adv_id, dim=-1).mean().item()
+
+    print("--- attack metrics ---")
+    print(f"detector face score (before -> after):  {det_before:.4f} -> {det_after:.4f}")
+    print(f"ArcFace cosine (clean vs protected):    {cos:.4f}  (1=same, -1=opposite)")
 
 
 def _print_summary(clean: object, adversarial: object, output: Path) -> None:
