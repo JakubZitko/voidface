@@ -8,7 +8,6 @@ from __future__ import annotations
 import argparse
 
 import pytest
-
 from voidface_cli.main import _build_parser
 
 
@@ -55,7 +54,7 @@ def test_dump_iris_mask_accepts_path(parser: argparse.ArgumentParser) -> None:
     assert args.dump_iris_mask == Path("out/mask.png")
 
 
-def test_iris_ratio_below_one_rejected(tmp_path) -> None:  # noqa: ANN001
+def test_iris_ratio_below_one_rejected(tmp_path) -> None:
     """`--iris-ratio 0.5` is nonsensical (would shrink budget); return 2."""
     from voidface_cli.main import main
 
@@ -69,7 +68,7 @@ def test_iris_ratio_below_one_rejected(tmp_path) -> None:  # noqa: ANN001
     assert rc == 2
 
 
-def test_negative_semantic_warp_rejected(tmp_path) -> None:  # noqa: ANN001
+def test_negative_semantic_warp_rejected(tmp_path) -> None:
     """`--semantic-warp -1.0` is nonsensical (max-displacement must be positive)."""
     from voidface_cli.main import main
 
@@ -83,7 +82,7 @@ def test_negative_semantic_warp_rejected(tmp_path) -> None:  # noqa: ANN001
     assert rc == 2
 
 
-def test_epsilon_out_of_range_rejected(tmp_path) -> None:  # noqa: ANN001
+def test_epsilon_out_of_range_rejected(tmp_path) -> None:
     """--epsilon is N/255; values below 1 or above 255 are rejected."""
     from voidface_cli.main import main
 
@@ -97,7 +96,7 @@ def test_epsilon_out_of_range_rejected(tmp_path) -> None:  # noqa: ANN001
     assert main(["protect", str(img), "--epsilon", "-5"]) == 2
 
 
-def test_zero_steps_rejected(tmp_path) -> None:  # noqa: ANN001
+def test_zero_steps_rejected(tmp_path) -> None:
     """--steps 0 means no PGD iterations — degenerate."""
     from voidface_cli.main import main
 
@@ -106,7 +105,7 @@ def test_zero_steps_rejected(tmp_path) -> None:  # noqa: ANN001
     assert main(["protect", str(img), "--steps", "0"]) == 2
 
 
-def test_negative_refine_steps_rejected(tmp_path) -> None:  # noqa: ANN001
+def test_negative_refine_steps_rejected(tmp_path) -> None:
     """--refine-steps -3 is nonsensical."""
     from voidface_cli.main import main
 

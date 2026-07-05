@@ -22,7 +22,7 @@ def _write_checkpoint(path: Path) -> None:
 
 
 def test_dry_run_prints_planned_artifacts_without_writing(
-    tmp_path: Path, capsys  # noqa: ANN001
+    tmp_path: Path, capsys
 ) -> None:
     from voidface_cli.main import main
 
@@ -51,7 +51,7 @@ def test_dry_run_prints_planned_artifacts_without_writing(
 
 
 def test_dry_run_includes_coreml_when_flagged(
-    tmp_path: Path, capsys  # noqa: ANN001
+    tmp_path: Path, capsys
 ) -> None:
     from voidface_cli.main import main
 
@@ -70,7 +70,7 @@ def test_dry_run_includes_coreml_when_flagged(
 
 
 def test_dry_run_includes_static_int8_with_calibration_dir(
-    tmp_path: Path, capsys  # noqa: ANN001
+    tmp_path: Path, capsys
 ) -> None:
     from voidface_cli.main import main
 

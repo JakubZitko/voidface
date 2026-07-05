@@ -54,7 +54,6 @@ def test_package_minimal(tmp_path: Path) -> None:
 
 def test_package_with_calibration_dir(tmp_path: Path) -> None:
     from PIL import Image
-
     from voidface_cli.main import main
 
     ckpt = tmp_path / "gen.pt"

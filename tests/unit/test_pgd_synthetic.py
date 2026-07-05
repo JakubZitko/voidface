@@ -30,7 +30,7 @@ class _MeanGap(torch.nn.Module):
         super().__init__()
         self.spec = None  # type: ignore[assignment]
 
-    def forward(self, image: torch.Tensor) -> TargetOutputs:  # noqa: PLR6301
+    def forward(self, image: torch.Tensor) -> TargetOutputs:
         return TargetOutputs(logits=image.mean(dim=(1, 2, 3), keepdim=True))
 
 

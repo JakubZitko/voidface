@@ -23,7 +23,7 @@ class _StubDetector(torch.nn.Module):
 
     spec = TargetSpec(name="stub-det", family="detectors")
 
-    def forward(self, image: Tensor) -> TargetOutputs:  # noqa: PLR6301
+    def forward(self, image: Tensor) -> TargetOutputs:
         mean = image.mean(dim=(1, 2, 3), keepdim=True).clamp(0, 1)
         # (N, 1, 2) softmax where face-present = mean, background = 1 - mean.
         # Use logits so downstream softmax gives back the same distribution.
@@ -38,7 +38,7 @@ class _StubRecognizer(torch.nn.Module):
 
     spec = TargetSpec(name="stub-rec", family="recognizers")
 
-    def forward(self, image: Tensor) -> TargetOutputs:  # noqa: PLR6301
+    def forward(self, image: Tensor) -> TargetOutputs:
         mean = image.mean(dim=(2, 3))  # (N, 3)
         max_ = image.amax(dim=(2, 3))  # (N, 3)
         pooled = torch.cat([mean, max_], dim=-1)

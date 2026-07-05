@@ -34,7 +34,7 @@ def test_sdxl_vae_forward_shape_and_latent(monkeypatch: pytest.MonkeyPatch) -> N
         def __init__(self, latent_channels: int = 4) -> None:
             self.latent_channels = latent_channels
 
-        def __call__(self, x: torch.Tensor) -> Any:  # noqa: ANN401
+        def __call__(self, x: torch.Tensor) -> Any:
             n, _, h, w = x.shape
             mean = torch.zeros(n, self.latent_channels, h // 8, w // 8)
             return type("LatentDist", (), {"mean": mean})()
@@ -43,7 +43,7 @@ def test_sdxl_vae_forward_shape_and_latent(monkeypatch: pytest.MonkeyPatch) -> N
         def __init__(self) -> None:
             self._encoder = _StubEncoder()
 
-        def encode(self, x: torch.Tensor) -> Any:  # noqa: ANN401
+        def encode(self, x: torch.Tensor) -> Any:
             return type("EncOut", (), {"latent_dist": self._encoder(x)})()
 
         def to(self, _device: torch.device) -> "_StubVae":
@@ -52,7 +52,7 @@ def test_sdxl_vae_forward_shape_and_latent(monkeypatch: pytest.MonkeyPatch) -> N
         def eval(self) -> "_StubVae":
             return self
 
-        def parameters(self):  # noqa: ANN201
+        def parameters(self):
             return iter([])
 
     def _fake_loader(_model_id: str, _device: torch.device) -> _StubVae:

@@ -52,7 +52,7 @@ def _build_targets(
         return float(targets_conf.get(name, {}).get("weight", default))
 
     if targets_conf.get("detector", {}).get("enabled", False):
-        from voidface.models.detectors.retinaface import RetinaFace  # noqa: PLC0415
+        from voidface.models.detectors.retinaface import RetinaFace
 
         log.info("model.detector.loading", name="retinaface-r50")
         detector = RetinaFace(device=device)
@@ -60,7 +60,7 @@ def _build_targets(
         weights_targets["detector"] = _weight("detector", 0.35)
 
     if targets_conf.get("recognizer", {}).get("enabled", False):
-        from voidface.models.recognizers.arcface import Arcface  # noqa: PLC0415
+        from voidface.models.recognizers.arcface import Arcface
 
         log.info("model.recognizer.loading", name="arcface-r100")
         recognizer = Arcface(device=device)
@@ -68,7 +68,7 @@ def _build_targets(
         weights_targets["recognizer"] = _weight("recognizer", 0.40)
 
     if targets_conf.get("vae", {}).get("enabled", False):
-        from voidface.models.vaes.sd15 import Sd15Vae  # noqa: PLC0415
+        from voidface.models.vaes.sd15 import Sd15Vae
 
         log.info("model.vae.loading", name="sd15-vae")
         vae = Sd15Vae(device=device)
@@ -80,7 +80,7 @@ def _build_targets(
         weights_targets["vae"] = _weight("vae", 0.20)
 
     if targets_conf.get("sdxl-vae", {}).get("enabled", False):
-        from voidface.models.vaes.sdxl import SdxlVae  # noqa: PLC0415
+        from voidface.models.vaes.sdxl import SdxlVae
 
         log.info("model.sdxl-vae.loading", name="sdxl-vae")
         sdxl_vae = SdxlVae(device=device)
@@ -92,7 +92,7 @@ def _build_targets(
         weights_targets["sdxl-vae"] = _weight("sdxl-vae", 0.15)
 
     if targets_conf.get("openclip", {}).get("enabled", False):
-        from voidface.models.clip.openclip import OpenClip  # noqa: PLC0415
+        from voidface.models.clip.openclip import OpenClip
 
         log.info("model.openclip.loading", name="openclip-vit-b-32")
         openclip = OpenClip(device=device)
@@ -203,7 +203,7 @@ def run(args: argparse.Namespace) -> int:
         if name == "identity":
             restorer_options.append((IdentityRestorer(), w))
         elif name == "sd15-vae":
-            from voidface.models.restorers.sd_vae import Sd15VaeRestorer  # noqa: PLC0415
+            from voidface.models.restorers.sd_vae import Sd15VaeRestorer
 
             if vae is None:
                 log.error(
@@ -213,11 +213,11 @@ def run(args: argparse.Namespace) -> int:
                 return 2
             restorer_options.append((Sd15VaeRestorer(encoder=vae), w))
         elif name == "gfpgan":
-            from voidface.models.restorers.gfpgan import GfpganRestorer  # noqa: PLC0415
+            from voidface.models.restorers.gfpgan import GfpganRestorer
 
             gfpgan_detector = target_losses.get("detector", (None,))[0]
             if gfpgan_detector is None:
-                from voidface.models.detectors.retinaface import RetinaFace  # noqa: PLC0415
+                from voidface.models.detectors.retinaface import RetinaFace
 
                 log.info(
                     "model.detector.loading",

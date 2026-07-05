@@ -19,7 +19,7 @@ class _EchoLogits(torch.nn.Module):
 
     spec = TargetSpec(name="echo-logits", family="detectors")
 
-    def forward(self, image: Tensor) -> TargetOutputs:  # noqa: PLR6301
+    def forward(self, image: Tensor) -> TargetOutputs:
         return TargetOutputs(logits=image.mean(dim=(1, 2, 3), keepdim=True))
 
 
@@ -28,7 +28,7 @@ class _EchoEmbedding(torch.nn.Module):
 
     spec = TargetSpec(name="echo-embed", family="recognizers")
 
-    def forward(self, image: Tensor) -> TargetOutputs:  # noqa: PLR6301
+    def forward(self, image: Tensor) -> TargetOutputs:
         vec = image.mean(dim=(2, 3))  # (N, 3)
         vec = torch.cat([vec, image.std(dim=(2, 3))], dim=-1)  # (N, 6)
         return TargetOutputs(embedding=vec / vec.norm(dim=-1, keepdim=True).clamp_min(1e-8))
@@ -39,7 +39,7 @@ class _EchoLatent(torch.nn.Module):
 
     spec = TargetSpec(name="echo-latent", family="vaes")
 
-    def forward(self, image: Tensor) -> TargetOutputs:  # noqa: PLR6301
+    def forward(self, image: Tensor) -> TargetOutputs:
         # Down-sample by 4 for a "latent"-shaped output.
         latent = torch.nn.functional.avg_pool2d(image, 4).sum(dim=1, keepdim=True)
         return TargetOutputs(latent=latent)

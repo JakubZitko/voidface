@@ -47,8 +47,9 @@ def test_toplevel_help_exits_cleanly() -> None:
 
 
 def test_version_flag_prints_semver() -> None:
-    import voidface
     from voidface_cli.main import main
+
+    import voidface
 
     try:
         main(["--version"])

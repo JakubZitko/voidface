@@ -14,7 +14,7 @@ pytest.importorskip("onnxruntime")
 pytest.importorskip("onnx")
 
 
-def _calibration_iterator(n: int, size: int):  # noqa: ANN202
+def _calibration_iterator(n: int, size: int):
     import numpy as np
 
     rng = np.random.default_rng(seed=0)

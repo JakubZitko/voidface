@@ -44,7 +44,7 @@ def resolve_device(name: str) -> torch.device:
         A ``torch.device``. 'auto' picks CUDA if available, then MPS
         if available on Apple Silicon, then CPU.
     """
-    import torch  # noqa: PLC0415
+    import torch
 
     if name == "auto":
         if torch.cuda.is_available():

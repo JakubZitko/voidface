@@ -19,7 +19,7 @@ def _write_checkpoint(path: Path, step: int = 12345) -> None:
     torch.save({"step": step, "state_dict": generator.state_dict(), "config": config}, path)
 
 
-def test_info_prints_human_summary(tmp_path: Path, capsys) -> None:  # noqa: ANN001
+def test_info_prints_human_summary(tmp_path: Path, capsys) -> None:
     from voidface_cli.main import main
 
     ckpt = tmp_path / "gen.pt"
@@ -32,7 +32,7 @@ def test_info_prints_human_summary(tmp_path: Path, capsys) -> None:  # noqa: ANN
     assert "epsilon" in out
 
 
-def test_info_json_output(tmp_path: Path, capsys) -> None:  # noqa: ANN001
+def test_info_json_output(tmp_path: Path, capsys) -> None:
     from voidface_cli.main import main
 
     ckpt = tmp_path / "gen.pt"
@@ -46,7 +46,7 @@ def test_info_json_output(tmp_path: Path, capsys) -> None:  # noqa: ANN001
     assert "epsilon" in parsed["config"]
 
 
-def test_info_missing_checkpoint_errors(tmp_path: Path, capsys) -> None:  # noqa: ANN001
+def test_info_missing_checkpoint_errors(tmp_path: Path, capsys) -> None:
     from voidface_cli.main import main
 
     rc = main(["info", str(tmp_path / "does_not_exist.pt")])
@@ -55,7 +55,7 @@ def test_info_missing_checkpoint_errors(tmp_path: Path, capsys) -> None:  # noqa
     assert "not found" in err
 
 
-def test_info_diff_prints_side_by_side(tmp_path: Path, capsys) -> None:  # noqa: ANN001
+def test_info_diff_prints_side_by_side(tmp_path: Path, capsys) -> None:
     from voidface_cli.main import main
 
     a = tmp_path / "a.pt"

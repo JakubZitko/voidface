@@ -60,7 +60,7 @@ def test_retinaface_wrapper_with_stub_arch(monkeypatch: pytest.MonkeyPatch) -> N
     x255, per-channel mean subtraction, and TargetOutputs population."""
 
     captured: dict[str, torch.Tensor] = {}
-    from voidface.models.base import TargetOutputs  # noqa: F401 -- used implicitly
+    from voidface.models.base import TargetOutputs
 
     class _StubArch(torch.nn.Module):
         def forward(
@@ -73,7 +73,7 @@ def test_retinaface_wrapper_with_stub_arch(monkeypatch: pytest.MonkeyPatch) -> N
         def eval(self) -> "_StubArch":  # type: ignore[override]
             return self
 
-        def parameters(self):  # noqa: ANN201
+        def parameters(self):
             return iter([])
 
     def _fake_loader(_id: str, _device: torch.device) -> _StubArch:

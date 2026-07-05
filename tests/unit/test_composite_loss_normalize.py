@@ -22,7 +22,7 @@ class _BigTarget(torch.nn.Module):
 
     spec = TargetSpec(name="big", family="vaes")
 
-    def forward(self, image: Tensor) -> TargetOutputs:  # noqa: PLR6301
+    def forward(self, image: Tensor) -> TargetOutputs:
         return TargetOutputs(logits=image.mean(dim=(1, 2, 3), keepdim=True))
 
 
@@ -31,7 +31,7 @@ class _SmallTarget(torch.nn.Module):
 
     spec = TargetSpec(name="small", family="detectors")
 
-    def forward(self, image: Tensor) -> TargetOutputs:  # noqa: PLR6301
+    def forward(self, image: Tensor) -> TargetOutputs:
         return TargetOutputs(logits=image.mean(dim=(1, 2, 3), keepdim=True))
 
 

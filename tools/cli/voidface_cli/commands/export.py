@@ -54,7 +54,7 @@ def run(args: argparse.Namespace) -> int:
     log.info("onnx.exported", size_bytes=args.output.stat().st_size)
 
     if args.quantize is not None:
-        from voidface.export.quantize import quantize_onnx_generator  # noqa: PLC0415
+        from voidface.export.quantize import quantize_onnx_generator
 
         quantized_path = args.output.with_suffix(f".{args.quantize}.onnx")
         log.info("quantize.starting", path=str(quantized_path), weight_type=args.quantize)
@@ -66,8 +66,8 @@ def run(args: argparse.Namespace) -> int:
         )
 
     if args.quantize_static_dir is not None:
-        from voidface.data.datasets import FolderImageDataset  # noqa: PLC0415
-        from voidface.export.quantize import quantize_onnx_generator_static  # noqa: PLC0415
+        from voidface.data.datasets import FolderImageDataset
+        from voidface.export.quantize import quantize_onnx_generator_static
 
         log.info(
             "quantize_static.starting",
@@ -80,9 +80,9 @@ def run(args: argparse.Namespace) -> int:
             augment=False,
         )
 
-        from collections.abc import Iterator  # noqa: PLC0415
+        from collections.abc import Iterator
 
-        import numpy as np  # noqa: PLC0415
+        import numpy as np
 
         def _iterator() -> Iterator[np.ndarray]:  # type: ignore[type-arg]
             limit = min(args.quantize_static_samples, len(dataset))
@@ -99,7 +99,7 @@ def run(args: argparse.Namespace) -> int:
 
     if args.coreml:
         try:
-            from voidface.export.coreml import export_generator_to_coreml  # noqa: PLC0415
+            from voidface.export.coreml import export_generator_to_coreml
         except ImportError as exc:
             log.error("coreml.import_failed", error=str(exc))
             return 3
@@ -117,7 +117,7 @@ def run(args: argparse.Namespace) -> int:
         log.info("coreml.done", path=str(coreml_path))
 
     if args.ort:
-        from voidface.export.ort import OrtConversionError, convert_onnx_to_ort  # noqa: PLC0415
+        from voidface.export.ort import OrtConversionError, convert_onnx_to_ort
 
         log.info("ort.converting", input=str(args.output))
         try:

@@ -12,7 +12,7 @@ def _write_config(path: Path, body: str) -> None:
     path.write_text(body.strip() + "\n")
 
 
-def test_valid_config_returns_zero(tmp_path: Path, capsys) -> None:  # noqa: ANN001
+def test_valid_config_returns_zero(tmp_path: Path, capsys) -> None:
     from voidface_cli.main import main
 
     data_dir = tmp_path / "data"
@@ -45,7 +45,7 @@ identity = 1.0
     assert "OK" in out
 
 
-def test_missing_directory_errors(tmp_path: Path, capsys) -> None:  # noqa: ANN001
+def test_missing_directory_errors(tmp_path: Path, capsys) -> None:
     from voidface_cli.main import main
 
     cfg = tmp_path / "cfg.toml"
@@ -69,7 +69,7 @@ enabled = true
     assert "does not exist" in out
 
 
-def test_no_targets_enabled_warns(tmp_path: Path, capsys) -> None:  # noqa: ANN001
+def test_no_targets_enabled_warns(tmp_path: Path, capsys) -> None:
     from voidface_cli.main import main
 
     data_dir = tmp_path / "data"
@@ -90,7 +90,7 @@ directory = "{data_dir}"
     assert "WARN" in out
 
 
-def test_unknown_target_name_errors(tmp_path: Path, capsys) -> None:  # noqa: ANN001
+def test_unknown_target_name_errors(tmp_path: Path, capsys) -> None:
     from voidface_cli.main import main
 
     data_dir = tmp_path / "data"
@@ -112,7 +112,7 @@ enabled = true
     assert "unknown [targets.deeftector]" in out
 
 
-def test_missing_config_file_errors(tmp_path: Path, capsys) -> None:  # noqa: ANN001
+def test_missing_config_file_errors(tmp_path: Path, capsys) -> None:
     from voidface_cli.main import main
 
     rc = main(["config-check", str(tmp_path / "does_not_exist.toml")])

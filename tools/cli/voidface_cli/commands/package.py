@@ -82,8 +82,8 @@ def run(args: argparse.Namespace) -> int:
     artifacts["int8"] = dyn_path
 
     if args.calibration_dir is not None:
-        from voidface.data.datasets import FolderImageDataset  # noqa: PLC0415
-        from voidface.export.quantize import quantize_onnx_generator_static  # noqa: PLC0415
+        from voidface.data.datasets import FolderImageDataset
+        from voidface.export.quantize import quantize_onnx_generator_static
 
         static_path = args.output_dir / f"{args.name}.static-int8.onnx"
         log.info("package.static-int8", path=str(static_path))
@@ -91,9 +91,9 @@ def run(args: argparse.Namespace) -> int:
             args.calibration_dir, resolution=args.example_resolution, augment=False
         )
 
-        from collections.abc import Iterator  # noqa: PLC0415
+        from collections.abc import Iterator
 
-        import numpy as np  # noqa: PLC0415
+        import numpy as np
 
         def _iter() -> Iterator[np.ndarray]:  # type: ignore[type-arg]
             for i in range(min(64, len(dataset))):
@@ -111,7 +111,7 @@ def run(args: argparse.Namespace) -> int:
 
     if args.coreml:
         try:
-            from voidface.export.coreml import export_generator_to_coreml  # noqa: PLC0415
+            from voidface.export.coreml import export_generator_to_coreml
 
             coreml_path = args.output_dir / f"{args.name}.mlpackage"
             export_generator_to_coreml(

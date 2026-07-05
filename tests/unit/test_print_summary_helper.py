@@ -13,11 +13,10 @@ from __future__ import annotations
 from pathlib import Path
 
 import torch
-
 from voidface_cli.commands.protect import _print_summary
 
 
-def test_summary_prints_expected_labels(capsys) -> None:  # noqa: ANN001
+def test_summary_prints_expected_labels(capsys) -> None:
     clean = torch.zeros(1, 3, 8, 8)
     adv = torch.zeros(1, 3, 8, 8)
     adv[..., 0, 0] = 0.1
@@ -31,12 +30,12 @@ def test_summary_prints_expected_labels(capsys) -> None:  # noqa: ANN001
     assert "/tmp/protected.png" in out
 
 
-def test_summary_noop_on_non_tensor(capsys) -> None:  # noqa: ANN001
+def test_summary_noop_on_non_tensor(capsys) -> None:
     _print_summary("not a tensor", None, Path("/tmp/x.png"))  # type: ignore[arg-type]
     assert capsys.readouterr().out == ""
 
 
-def test_summary_reports_correct_linf(capsys) -> None:  # noqa: ANN001
+def test_summary_reports_correct_linf(capsys) -> None:
     clean = torch.zeros(1, 3, 4, 4)
     adv = clean.clone()
     # One-pixel spike of magnitude 5/255.

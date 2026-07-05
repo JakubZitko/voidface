@@ -68,8 +68,9 @@ def test_load_generator_checkpoint_missing_raises(tmp_path: Path) -> None:
 def test_load_generator_checkpoint_roundtrip(tmp_path: Path) -> None:
     from unittest.mock import MagicMock
 
-    from voidface.generator.architecture import Voidface, VoidfaceConfig
     from voidface_cli.common import load_generator_checkpoint
+
+    from voidface.generator.architecture import Voidface, VoidfaceConfig
 
     ckpt = tmp_path / "gen.pt"
     config = VoidfaceConfig(base_channels=8)

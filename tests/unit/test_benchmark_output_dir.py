@@ -18,14 +18,14 @@ from voidface.models.base import TargetOutputs, TargetSpec
 class _StubDetector(torch.nn.Module):
     spec = TargetSpec(name="stub-det", family="detectors")
 
-    def forward(self, image: Tensor) -> TargetOutputs:  # noqa: PLR6301
+    def forward(self, image: Tensor) -> TargetOutputs:
         return TargetOutputs(logits=torch.tensor([[[0.0, 0.5]]]))
 
 
 class _StubRecognizer(torch.nn.Module):
     spec = TargetSpec(name="stub-rec", family="recognizers")
 
-    def forward(self, image: Tensor) -> TargetOutputs:  # noqa: PLR6301
+    def forward(self, image: Tensor) -> TargetOutputs:
         vec = image.mean(dim=(2, 3))
         norm = vec / vec.norm(dim=-1, keepdim=True).clamp_min(1e-8)
         return TargetOutputs(embedding=norm)

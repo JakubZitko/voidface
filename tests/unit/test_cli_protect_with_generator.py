@@ -53,8 +53,9 @@ def test_protect_with_generator_runs_end_to_end(tmp_path: Path) -> None:
 
 def test_protect_with_generator_reflects_epsilon_budget(tmp_path: Path) -> None:
     """The protected image should stay within L-inf budget of the input."""
-    from voidface.util.image import load_image
     from voidface_cli.main import main
+
+    from voidface.util.image import load_image
 
     image_path = tmp_path / "input.png"
     ckpt_path = tmp_path / "gen.pt"

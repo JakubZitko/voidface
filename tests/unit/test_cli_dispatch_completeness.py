@@ -22,7 +22,7 @@ def test_every_subparser_has_a_dispatch_entry() -> None:
     parser = _build_parser()
 
     subparsers_action = None
-    for action in parser._actions:  # noqa: SLF001
+    for action in parser._actions:
         if action.__class__.__name__ == "_SubParsersAction":
             subparsers_action = action
             break
@@ -54,7 +54,7 @@ def test_dispatch_covers_all_documented_subcommands() -> None:
 
     parser = _build_parser()
     subparsers = None
-    for action in parser._actions:  # noqa: SLF001
+    for action in parser._actions:
         if action.__class__.__name__ == "_SubParsersAction":
             subparsers = action
             break

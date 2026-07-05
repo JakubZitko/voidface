@@ -15,7 +15,7 @@ def _write_solid(path: Path, colour: tuple[int, int, int], size: int = 64) -> No
     Image.new("RGB", (size, size), colour).save(path)
 
 
-def test_report_prints_psnr_and_ssim(tmp_path: Path, capsys) -> None:  # noqa: ANN001
+def test_report_prints_psnr_and_ssim(tmp_path: Path, capsys) -> None:
     from voidface_cli.main import main
 
     original = tmp_path / "orig.png"
@@ -31,7 +31,7 @@ def test_report_prints_psnr_and_ssim(tmp_path: Path, capsys) -> None:  # noqa: A
     assert "L-inf" in out
 
 
-def test_report_identity_gives_infinite_psnr(tmp_path: Path, capsys) -> None:  # noqa: ANN001
+def test_report_identity_gives_infinite_psnr(tmp_path: Path, capsys) -> None:
     from voidface_cli.main import main
 
     original = tmp_path / "orig.png"
@@ -45,7 +45,7 @@ def test_report_identity_gives_infinite_psnr(tmp_path: Path, capsys) -> None:  #
     assert "inf" in out.lower()
 
 
-def test_report_shape_mismatch_errors(tmp_path: Path, capsys) -> None:  # noqa: ANN001
+def test_report_shape_mismatch_errors(tmp_path: Path, capsys) -> None:
     from voidface_cli.main import main
 
     a = tmp_path / "a.png"

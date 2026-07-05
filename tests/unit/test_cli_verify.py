@@ -22,7 +22,7 @@ def _write_checkpoint(path: Path) -> None:
     torch.save({"step": 0, "state_dict": generator.state_dict(), "config": config}, path)
 
 
-def test_verify_matches_produced_bundle(tmp_path: Path, capsys) -> None:  # noqa: ANN001
+def test_verify_matches_produced_bundle(tmp_path: Path, capsys) -> None:
     from voidface_cli.main import main
 
     ckpt = tmp_path / "gen.pt"
@@ -38,7 +38,7 @@ def test_verify_matches_produced_bundle(tmp_path: Path, capsys) -> None:  # noqa
     assert "OK" in out
 
 
-def test_verify_missing_checksums_errors(tmp_path: Path, capsys) -> None:  # noqa: ANN001
+def test_verify_missing_checksums_errors(tmp_path: Path, capsys) -> None:
     from voidface_cli.main import main
 
     rc = main(["verify", str(tmp_path)])
@@ -47,7 +47,7 @@ def test_verify_missing_checksums_errors(tmp_path: Path, capsys) -> None:  # noq
     assert "not a voidface bundle" in err or "not found" in err
 
 
-def test_verify_detects_tampered_file(tmp_path: Path, capsys) -> None:  # noqa: ANN001
+def test_verify_detects_tampered_file(tmp_path: Path, capsys) -> None:
     from voidface_cli.main import main
 
     ckpt = tmp_path / "gen.pt"

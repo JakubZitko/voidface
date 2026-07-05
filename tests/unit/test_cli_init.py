@@ -8,7 +8,7 @@ from __future__ import annotations
 from pathlib import Path
 
 
-def test_init_smoke_writes_valid_toml(tmp_path: Path, capsys) -> None:  # noqa: ANN001
+def test_init_smoke_writes_valid_toml(tmp_path: Path, capsys) -> None:
     import tomllib
 
     from voidface_cli.main import main
@@ -22,7 +22,7 @@ def test_init_smoke_writes_valid_toml(tmp_path: Path, capsys) -> None:  # noqa: 
     assert "restorers" in parsed
 
 
-def test_init_full_writes_valid_toml(tmp_path: Path, capsys) -> None:  # noqa: ANN001
+def test_init_full_writes_valid_toml(tmp_path: Path, capsys) -> None:
     import tomllib
 
     from voidface_cli.main import main
@@ -38,7 +38,7 @@ def test_init_full_writes_valid_toml(tmp_path: Path, capsys) -> None:  # noqa: A
     assert parsed["restorers"]["gfpgan"] == 0.60
 
 
-def test_init_to_stdout(tmp_path: Path, capsys) -> None:  # noqa: ANN001
+def test_init_to_stdout(tmp_path: Path, capsys) -> None:
     from voidface_cli.main import main
 
     rc = main(["init", "detector-only"])

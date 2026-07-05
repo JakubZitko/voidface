@@ -82,9 +82,9 @@ def _print_summary(clean: object, adversarial: object, output: Path) -> None:
 
 def _print_attack_metrics(clean: torch.Tensor, adversarial: torch.Tensor, log: Any) -> None:
     """Run the real ensemble on both clean and protected and print ASR-style metrics."""
-    from voidface.eval.benchmark import _detection_face_score  # noqa: PLC0415
-    from voidface.models.detectors.retinaface import RetinaFace  # noqa: PLC0415
-    from voidface.models.recognizers.arcface import Arcface  # noqa: PLC0415
+    from voidface.eval.benchmark import _detection_face_score
+    from voidface.models.detectors.retinaface import RetinaFace
+    from voidface.models.recognizers.arcface import Arcface
 
     log.info("metrics.model.detector.loading", name="retinaface-r50")
     detector = RetinaFace(device=clean.device)
@@ -148,7 +148,7 @@ def _protect_batch(args: argparse.Namespace, device: torch.device, log: Any) -> 
     PGD on a large folder is impractical (~2 min per image). The
     generator is loaded exactly once regardless of batch size.
     """
-    from voidface.data.datasets import collect_image_paths  # noqa: PLC0415
+    from voidface.data.datasets import collect_image_paths
 
     if args.output_dir is None:
         log.error(
@@ -231,7 +231,7 @@ def _protect_via_generator(args: argparse.Namespace, clean: torch.Tensor, log: A
     return 0
 
 
-def run(args: argparse.Namespace) -> int:  # noqa: PLR0911
+def run(args: argparse.Namespace) -> int:
     """Main entry point for `voidface protect`."""
     configure_logging(level="DEBUG" if args.verbose else "INFO")
     log = get_logger("voidface.cli")
@@ -367,7 +367,7 @@ def run(args: argparse.Namespace) -> int:  # noqa: PLR0911
     weights_targets: dict[str, float] = {}
 
     if "detector" in selected:
-        from voidface.models.detectors.retinaface import RetinaFace  # noqa: PLC0415
+        from voidface.models.detectors.retinaface import RetinaFace
 
         log.info("model.detector.loading", name="retinaface-r50")
         detector = RetinaFace(device=device)
@@ -375,7 +375,7 @@ def run(args: argparse.Namespace) -> int:  # noqa: PLR0911
         weights_targets["detector"] = 0.35
 
     if "recognizer" in selected:
-        from voidface.models.recognizers.arcface import Arcface  # noqa: PLC0415
+        from voidface.models.recognizers.arcface import Arcface
 
         log.info("model.recognizer.loading", name="arcface-r100")
         recognizer = Arcface(device=device)
@@ -384,7 +384,7 @@ def run(args: argparse.Namespace) -> int:  # noqa: PLR0911
 
     vae = None
     if "vae" in selected:
-        from voidface.models.vaes.sd15 import Sd15Vae  # noqa: PLC0415
+        from voidface.models.vaes.sd15 import Sd15Vae
 
         log.info("model.vae.loading", name="sd15-vae")
         vae = Sd15Vae(device=device)
@@ -394,7 +394,7 @@ def run(args: argparse.Namespace) -> int:  # noqa: PLR0911
         weights_targets["vae"] = 0.20
 
     if "sdxl-vae" in selected:
-        from voidface.models.vaes.sdxl import SdxlVae  # noqa: PLC0415
+        from voidface.models.vaes.sdxl import SdxlVae
 
         log.info("model.sdxl-vae.loading", name="sdxl-vae")
         sdxl_vae = SdxlVae(device=device)
@@ -406,7 +406,7 @@ def run(args: argparse.Namespace) -> int:  # noqa: PLR0911
         weights_targets["sdxl-vae"] = 0.15
 
     if "openclip" in selected:
-        from voidface.models.clip.openclip import OpenClip  # noqa: PLC0415
+        from voidface.models.clip.openclip import OpenClip
 
         log.info("model.openclip.loading", name="openclip-vit-b-32")
         openclip = OpenClip(device=device)
@@ -454,16 +454,16 @@ def run(args: argparse.Namespace) -> int:  # noqa: PLR0911
         if name == "identity":
             restorer_options.append((IdentityRestorer(), weight))
         elif name == "sd15-vae":
-            from voidface.models.restorers.sd_vae import Sd15VaeRestorer  # noqa: PLC0415
+            from voidface.models.restorers.sd_vae import Sd15VaeRestorer
 
             assert vae is not None, "sd15-vae restorer requires the VAE target."
             restorer_options.append((Sd15VaeRestorer(encoder=vae), weight))
         elif name == "gfpgan":
-            from voidface.models.restorers.gfpgan import GfpganRestorer  # noqa: PLC0415
+            from voidface.models.restorers.gfpgan import GfpganRestorer
 
             gfpgan_detector = target_losses.get("detector", (None,))[0]
             if gfpgan_detector is None:
-                from voidface.models.detectors.retinaface import RetinaFace  # noqa: PLC0415
+                from voidface.models.detectors.retinaface import RetinaFace
 
                 log.info(
                     "model.detector.loading",
@@ -496,8 +496,8 @@ def run(args: argparse.Namespace) -> int:  # noqa: PLR0911
             )
             return 2
         iris_detector = detector_pair[0]
-        from voidface.attacks.iris import iris_region_mask  # noqa: PLC0415
-        from voidface.models.restorers.gfpgan import pick_top_landmarks  # noqa: PLC0415
+        from voidface.attacks.iris import iris_region_mask
+        from voidface.models.restorers.gfpgan import pick_top_landmarks
 
         with torch.no_grad():
             det_out = iris_detector(clean)
@@ -537,7 +537,7 @@ def run(args: argparse.Namespace) -> int:  # noqa: PLR0911
 
     adversarial = result.adversarial
     if args.face_mask:
-        from voidface.util.facemask import face_region_mask  # noqa: PLC0415
+        from voidface.util.facemask import face_region_mask
 
         mask = face_region_mask(clean.squeeze(0)).to(device=clean.device)
         delta = adversarial - clean

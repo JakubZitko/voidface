@@ -57,7 +57,7 @@ def test_arcface_wrapper_with_stub_backbone(monkeypatch: pytest.MonkeyPatch) -> 
         def eval(self) -> "_StubNet":  # type: ignore[override]
             return self
 
-        def parameters(self):  # noqa: ANN201
+        def parameters(self):
             return iter([])
 
     def _fake_loader(_model_id: str, _device: torch.device) -> _StubNet:

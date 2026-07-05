@@ -72,7 +72,7 @@ def run(args: argparse.Namespace) -> int:
     epsilon = args.epsilon / 255.0
     alpha = float(args.temporal_blend)
 
-    from collections.abc import Iterator  # noqa: PLC0415
+    from collections.abc import Iterator
 
     def _protected_frames() -> Iterator[torch.Tensor]:
         prev_frame_cpu: torch.Tensor | None = None

@@ -17,7 +17,7 @@ class _NamedRestorer:
     def __init__(self, name: str) -> None:
         self.spec = RestorerSpec(name=name)
 
-    def __call__(self, image):  # noqa: ANN001,ANN201
+    def __call__(self, image):
         return image
 
 

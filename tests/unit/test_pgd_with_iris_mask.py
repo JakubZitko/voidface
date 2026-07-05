@@ -44,10 +44,10 @@ class _ConstantAdversarialLoss:
 
     def compute(
         self,
-        clean_repeat: Tensor,  # noqa: ARG002
-        eot_batch: Tensor,  # noqa: ARG002
+        clean_repeat: Tensor,
+        eot_batch: Tensor,
         delta: Tensor,
-        restorer: object | None = None,  # noqa: ARG002
+        restorer: object | None = None,
     ) -> tuple[Tensor, _StubBreakdown]:
         loss = -delta.mean()
         return loss, _StubBreakdown()

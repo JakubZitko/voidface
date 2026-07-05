@@ -31,7 +31,7 @@ def test_openclip_wrapper_with_stub(monkeypatch: pytest.MonkeyPatch) -> None:
             self.pooler_output = pooler
 
     class _StubClipVision:
-        def __call__(self, *, pixel_values: torch.Tensor) -> _StubOutput:  # noqa: ANN001
+        def __call__(self, *, pixel_values: torch.Tensor) -> _StubOutput:
             captured["pixel_values"] = pixel_values.detach().clone()
             return _StubOutput(torch.ones(pixel_values.size(0), 768) * 3.0)
 
@@ -41,7 +41,7 @@ def test_openclip_wrapper_with_stub(monkeypatch: pytest.MonkeyPatch) -> None:
         def eval(self) -> "_StubClipVision":
             return self
 
-        def parameters(self):  # noqa: ANN201
+        def parameters(self):
             return iter([])
 
         @classmethod

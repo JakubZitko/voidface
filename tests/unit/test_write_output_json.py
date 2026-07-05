@@ -15,7 +15,6 @@ import json
 from pathlib import Path
 
 import torch
-
 from voidface_cli.commands.protect import _write_output_json
 
 

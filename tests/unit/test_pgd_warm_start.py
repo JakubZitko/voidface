@@ -17,7 +17,7 @@ from voidface.models.base import TargetOutputs
 class _MeanTarget(torch.nn.Module):
     spec = None
 
-    def forward(self, image: Tensor) -> TargetOutputs:  # noqa: PLR6301
+    def forward(self, image: Tensor) -> TargetOutputs:
         return TargetOutputs(logits=image.mean(dim=(1, 2, 3), keepdim=True))
 
 
@@ -42,7 +42,7 @@ def test_warm_start_delta_gives_lower_initial_loss() -> None:
     # 0.
     warm_start = torch.full_like(clean, -8.0 / 255.0)
 
-    def _run(initial):  # noqa: ANN001,ANN202
+    def _run(initial):
         return run_pgd(
             clean=clean,
             composite_loss=_composite(),
