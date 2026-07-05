@@ -37,6 +37,8 @@ def main(argv: Sequence[str] | None = None) -> int:
         return _cmd_report(args)
     if args.command == "train":
         return _cmd_train(args)
+    if args.command == "export":
+        return _cmd_export(args)
 
     parser.print_help(sys.stderr)
     return 2
@@ -132,6 +134,25 @@ def _build_parser() -> argparse.ArgumentParser:
         help="Torch device: 'auto', 'cpu', 'cuda', 'mps' (default auto).",
     )
     p_train.add_argument("--verbose", action="store_true", help="Log every step.")
+
+    p_export = sub.add_parser(
+        "export",
+        help="Export the generator G to ONNX (optionally int8-quantized).",
+    )
+    p_export.add_argument("checkpoint", type=Path, help="Path to a trained .pt checkpoint.")
+    p_export.add_argument("output", type=Path, help="Output .onnx path.")
+    p_export.add_argument(
+        "--example-resolution",
+        type=int,
+        default=256,
+        help="Side length in pixels of the tracing example (default 256).",
+    )
+    p_export.add_argument(
+        "--quantize",
+        choices=["int8", "uint8"],
+        default=None,
+        help="Also emit a quantized <output>.<type>.onnx alongside the fp32 file.",
+    )
 
     return parser
 
@@ -348,6 +369,58 @@ def _cmd_report(args: argparse.Namespace) -> int:
 
 
 _ALLOWED_RESTORERS = {"identity", "sd15-vae", "gfpgan"}
+
+
+def _cmd_export(args: argparse.Namespace) -> int:
+    """Export a trained generator checkpoint to ONNX."""
+    import torch
+
+    from voidface.export.onnx import export_generator_to_onnx
+    from voidface.generator.architecture import Voidface, VoidfaceConfig
+    from voidface.util.log import configure_logging, get_logger
+
+    configure_logging(level="INFO")
+    log = get_logger("voidface.cli.export")
+
+    log.info("checkpoint.loading", path=str(args.checkpoint))
+    payload = torch.load(args.checkpoint, map_location="cpu", weights_only=False)
+    if isinstance(payload, dict) and "state_dict" in payload:
+        state_dict = payload["state_dict"]
+        stored_config = payload.get("config")
+        config = stored_config if isinstance(stored_config, VoidfaceConfig) else VoidfaceConfig()
+    else:
+        state_dict = payload
+        config = VoidfaceConfig()
+
+    generator = Voidface(config).eval()
+    generator.load_state_dict(state_dict)
+    log.info(
+        "generator.loaded",
+        params=sum(p.numel() for p in generator.parameters()),
+    )
+
+    if not args.output.parent.exists():
+        args.output.parent.mkdir(parents=True, exist_ok=True)
+
+    log.info("onnx.exporting", path=str(args.output), resolution=args.example_resolution)
+    export_generator_to_onnx(
+        generator, args.output, example_resolution=args.example_resolution
+    )
+    log.info("onnx.exported", size_bytes=args.output.stat().st_size)
+
+    if args.quantize is not None:
+        from voidface.export.quantize import quantize_onnx_generator
+
+        quantized_path = args.output.with_suffix(f".{args.quantize}.onnx")
+        log.info("quantize.starting", path=str(quantized_path), weight_type=args.quantize)
+        quantize_onnx_generator(args.output, quantized_path, weight_type=args.quantize)
+        log.info(
+            "quantize.done",
+            path=str(quantized_path),
+            size_bytes=quantized_path.stat().st_size,
+        )
+
+    return 0
 
 
 def _cmd_train(args: argparse.Namespace) -> int:
