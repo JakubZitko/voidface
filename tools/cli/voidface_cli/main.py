@@ -252,6 +252,17 @@ def _build_parser() -> argparse.ArgumentParser:
             "be built from the training TOML (architecture-compatible)."
         ),
     )
+    p_train.add_argument(
+        "--seed",
+        type=int,
+        default=None,
+        metavar="N",
+        help=(
+            "Override [experiment].seed from the TOML for this run. Useful "
+            "for A/B testing hyperparameters with the same data + config "
+            "but different RNG."
+        ),
+    )
 
     p_export = sub.add_parser(
         "export",
@@ -1864,6 +1875,7 @@ def _cmd_train(args: argparse.Namespace) -> int:
         restorer_options.append((IdentityRestorer(), 1.0))
     restorer_sampler = RestorerSampler(restorer_options, SamplerConfig(seed=0))
 
+    effective_seed = args.seed if args.seed is not None else int(experiment.get("seed", 0))
     train_config = TrainConfig(
         steps=int(experiment.get("steps", 1000)),
         learning_rate=float(optim_conf.get("learning_rate", 1e-4)),
@@ -1874,7 +1886,7 @@ def _cmd_train(args: argparse.Namespace) -> int:
         if "checkpoint_dir" in experiment
         else None,
         device=str(device),
-        seed=int(experiment.get("seed", 0)),
+        seed=effective_seed,
     )
 
     log.info(
