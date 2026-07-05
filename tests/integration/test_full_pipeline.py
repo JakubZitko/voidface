@@ -98,6 +98,29 @@ def test_full_pipeline_end_to_end(tmp_path: Path) -> None:
     assert onnx.with_suffix(".int8.onnx").exists()
     assert onnx.with_suffix(".ort").exists()
 
+    # 3b. Exercise `voidface package` on the same checkpoint.
+    release_dir = tmp_path / "release"
+    rc = main(
+        [
+            "package",
+            str(ckpt),
+            str(release_dir),
+            "--example-resolution",
+            "32",
+        ]
+    )
+    assert rc == 0
+    assert (release_dir / "MANIFEST.json").exists()
+    assert (release_dir / "CHECKSUMS.sha256").exists()
+
+    # 3c. Verify the produced bundle.
+    rc = main(["verify", str(release_dir)])
+    assert rc == 0
+
+    # 3d. `voidface info` on the same checkpoint.
+    rc = main(["info", str(ckpt), "--json"])
+    assert rc == 0
+
     # 4. protect --use-generator — the deploy fast-path.
     Image.new("RGB", (64, 64), (200, 128, 96)).save(tmp_path / "input.png")
     rc = main(
