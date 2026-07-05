@@ -116,6 +116,24 @@ Voidface 0.1.47 through 0.1.57 — 2026-07-05 — Phase R7.79 through R7.89
     Every documented flag across every subcommand catches
     nonsensical inputs at the top of the run().
 
+    R7.118-R7.122 — mypy-clean pass across voidface_cli/:
+
+    * R7.118 common.run_generator_and_save gets a type-ignore for
+      torch's Any-typed __call__ dispatch.
+    * R7.119 bench.py _Neutral + detector/recognizer variables
+      typed. export.py static-quant iterator typed.
+    * R7.120 package.py + protect_video.py generators typed.
+    * R7.121 protect.py + train.py: device params sharpened to
+      torch.device, target_losses/target_static_data/
+      restorer_options dict/list generic args added.
+    * R7.122 test_cli_mypy_clean.py — regression guard that
+      invokes mypy as a subprocess and asserts zero exit code
+      across common.py + commands/.
+
+    Session commit total: 178. Suite: 271 unit + 3 integration.
+    Whole `voidface_cli/` tree (common.py + 11 subcommand modules)
+    now strictly mypy-clean.
+
 
 Voidface 0.1.34 through 0.1.46 — 2026-07-05 — Phase R7.66 through R7.78
 
