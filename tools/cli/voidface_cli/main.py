@@ -246,6 +246,15 @@ def _build_parser() -> argparse.ArgumentParser:
             "PGD steps if any, save. Useful for profiling."
         ),
     )
+    p_protect.add_argument(
+        "--quiet",
+        action="store_true",
+        help=(
+            "Skip the human-readable summary block. Useful when driving "
+            "voidface from a shell script that only cares about exit "
+            "code + --output-json."
+        ),
+    )
 
     p_report = sub.add_parser(
         "report",
@@ -810,7 +819,8 @@ def _cmd_protect(args: argparse.Namespace) -> int:
     save_image(adversarial.squeeze(0), output)
     log.info("image.saved", path=str(output))
 
-    _print_summary(clean=clean, adversarial=adversarial, output=output)
+    if not args.quiet:
+        _print_summary(clean=clean, adversarial=adversarial, output=output)
     if args.output_json is not None:
         _write_output_json(args, clean, adversarial, output)
         log.info("output_json.written", path=str(args.output_json))
@@ -970,7 +980,8 @@ def _protect_via_generator(args: argparse.Namespace, clean, log) -> int:  # noqa
     )
     t_run = _time.perf_counter() - t_run_start
     log.info("image.saved", path=str(output))
-    _print_summary(clean=clean, adversarial=adversarial, output=output)
+    if not args.quiet:
+        _print_summary(clean=clean, adversarial=adversarial, output=output)
     if getattr(args, "show_metrics", False):
         _print_attack_metrics(clean=clean, adversarial=adversarial, log=log)
     if args.output_json is not None:
