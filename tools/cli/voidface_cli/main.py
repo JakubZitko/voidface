@@ -3,10 +3,11 @@
 #
 # Voidface command-line entry point.
 #
-# Phase R1 wires the `protect` subcommand end-to-end against the
-# minimum viable ensemble (RetinaFace + ArcFace). It does not yet
-# support video, the trained generator G, or batching. Those land in
-# later phases; this file grows subcommands as they do.
+# Phase R2 expands the ensemble to (detector + identity + VAE) with
+# LPIPS perceptual constraint and identity-restorer wrapping via the
+# bilevel loss shape. Video, full 13-target ensemble, and the trained
+# generator G land in later phases; this file grows subcommands as
+# they do.
 
 """Voidface CLI entry point."""
 
@@ -26,15 +27,7 @@ __all__ = ["app", "main"]
 
 
 def main(argv: Sequence[str] | None = None) -> int:
-    """Entry point for ``python -m voidface_cli.main`` and the console script.
-
-    Args:
-        argv: Argument vector without the program name. Defaults to
-            :data:`sys.argv[1:]`.
-
-    Returns:
-        The exit code to hand back to the shell.
-    """
+    """Entry point for ``python -m voidface_cli.main`` and the console script."""
     parser = _build_parser()
     args = parser.parse_args(list(argv) if argv is not None else None)
 
@@ -65,13 +58,19 @@ def _build_parser() -> argparse.ArgumentParser:
 
     p_protect = sub.add_parser(
         "protect",
-        help="Add adversarial perturbation to a single image (Phase R1).",
+        help="Add adversarial perturbation to a single image.",
     )
     p_protect.add_argument("image", type=Path, help="Input image path.")
     p_protect.add_argument(
-        "-o", "--output", type=Path, default=None, help="Output image path (default: <image>.protected.png)."
+        "-o",
+        "--output",
+        type=Path,
+        default=None,
+        help="Output image path (default: <image>.protected.png).",
     )
-    p_protect.add_argument("--epsilon", type=int, default=12, help="L-inf budget as N/255 (default 12).")
+    p_protect.add_argument(
+        "--epsilon", type=int, default=12, help="L-inf budget as N/255 (default 12)."
+    )
     p_protect.add_argument("--steps", type=int, default=100, help="PGD steps (default 100).")
     p_protect.add_argument(
         "--device",
@@ -81,10 +80,25 @@ def _build_parser() -> argparse.ArgumentParser:
     )
     p_protect.add_argument("--seed", type=int, default=0, help="Random seed (default 0).")
     p_protect.add_argument("--verbose", action="store_true", help="Log every PGD step.")
+    p_protect.add_argument(
+        "--targets",
+        type=str,
+        default="detector,recognizer",
+        help=(
+            "Comma-separated target subset. Options: 'detector', 'recognizer', 'vae'. "
+            "Default: 'detector,recognizer' (Phase R1 subset). Use "
+            "'detector,recognizer,vae' for the full Phase R2 ensemble."
+        ),
+    )
+    p_protect.add_argument(
+        "--no-lpips",
+        action="store_true",
+        help="Skip the LPIPS perceptual constraint (faster, weaker imperceptibility).",
+    )
 
     p_report = sub.add_parser(
         "report",
-        help="Print PSNR / SSIM / cosine numbers for a protected image.",
+        help="Print PSNR / SSIM / L-inf numbers for a protected image.",
     )
     p_report.add_argument("original", type=Path, help="Original clean image.")
     p_report.add_argument("protected", type=Path, help="Protected image (Voidface output).")
@@ -105,10 +119,13 @@ def _cmd_protect(args: argparse.Namespace) -> int:
         LossWeights,
         arcface_identity_loss,
         retinaface_suppression_loss,
+        vae_gray_latent_loss,
     )
     from voidface.core.pgd import PgdConfig, run_pgd
+    from voidface.eval.perceptual import load_lpips, psnr, ssim
     from voidface.models.detectors.mtcnn_pnet import MtcnnPnet
     from voidface.models.recognizers.facenet import Facenet
+    from voidface.models.restorers.identity import IdentityRestorer
     from voidface.util.image import load_image, save_image
     from voidface.util.log import configure_logging, get_logger
 
@@ -122,25 +139,63 @@ def _cmd_protect(args: argparse.Namespace) -> int:
     clean = load_image(args.image).to(device).unsqueeze(0)
     log.info("image.loaded", shape=tuple(clean.shape))
 
-    log.info("model.detector.loading")
-    detector = MtcnnPnet(device=device)
-    log.info("model.recognizer.loading")
-    recognizer = Facenet(device=device)
+    selected = {t.strip() for t in args.targets.split(",") if t.strip()}
+    allowed = {"detector", "recognizer", "vae"}
+    if not selected.issubset(allowed):
+        unknown = sorted(selected - allowed)
+        log.error("targets.unknown", unknown=unknown, allowed=sorted(allowed))
+        return 2
+    log.info("targets.selected", targets=sorted(selected))
 
-    def identity_pair_loss(perturbed, clean_out):  # type: ignore[no-untyped-def]
-        return arcface_identity_loss(perturbed, clean_out)
+    target_losses = {}
+    target_static_data = {}
+    weights_targets: dict[str, float] = {}
+
+    if "detector" in selected:
+        log.info("model.detector.loading", name="mtcnn-pnet")
+        detector = MtcnnPnet(device=device)
+        target_losses["detector"] = (detector, retinaface_suppression_loss)
+        weights_targets["detector"] = 0.35
+
+    if "recognizer" in selected:
+        log.info("model.recognizer.loading", name="facenet-vggface2")
+        recognizer = Facenet(device=device)
+        target_losses["recognizer"] = (recognizer, arcface_identity_loss)
+        weights_targets["recognizer"] = 0.40
+
+    if "vae" in selected:
+        from voidface.models.vaes.sd15 import Sd15Vae
+
+        log.info("model.vae.loading", name="sd15-vae")
+        vae = Sd15Vae(device=device)
+        gray_target = vae.encode_gray_target(height=clean.shape[-2], width=clean.shape[-1])
+        target_losses["vae"] = (vae, vae_gray_latent_loss)
+        target_static_data["vae"] = gray_target
+        weights_targets["vae"] = 0.25
+
+    if not target_losses:
+        log.error("targets.empty")
+        return 2
+
+    _renormalize(weights_targets)
+
+    lpips_fn = None
+    lpips_weight = 0.0
+    if not args.no_lpips:
+        log.info("perceptual.lpips.loading", backbone="alex")
+        lpips_fn = load_lpips(net="alex", device=device)
+        lpips_weight = 0.10
 
     weights = LossWeights(
-        targets={"detector": 0.5, "recognizer": 0.5},
-        lpips=0.0,             # Phase R1: no LPIPS to avoid extra weight download; add in R2.
+        targets=weights_targets,
+        lpips=lpips_weight,
         total_variation=0.01,
     )
     composite = CompositeLoss(
         weights=weights,
-        target_losses={
-            "detector": (detector, retinaface_suppression_loss),
-            "recognizer": (recognizer, identity_pair_loss),
-        },
+        target_losses=target_losses,
+        target_static_data=target_static_data,
+        lpips=lpips_fn,
     )
     eot = EotSampler(EotConfig(samples=2, seed=args.seed))
     pgd = PgdConfig(
@@ -152,7 +207,21 @@ def _cmd_protect(args: argparse.Namespace) -> int:
         seed=args.seed,
     )
 
-    log.info("pgd.start", epsilon=args.epsilon, steps=args.steps)
+    restorer = IdentityRestorer()
+    log.info(
+        "pgd.start",
+        epsilon=args.epsilon,
+        steps=args.steps,
+        targets=sorted(weights_targets),
+        lpips=(lpips_weight > 0.0),
+        restorer=restorer.spec.name,
+    )
+
+    from functools import partial
+
+    original_compute = composite.compute
+    composite.compute = partial(original_compute, restorer=restorer)  # type: ignore[method-assign]
+
     result = run_pgd(clean=clean, composite_loss=composite, eot=eot, config=pgd)
     log.info("pgd.done", final=round(result.history[-1].total_loss, 4))
 
@@ -165,22 +234,23 @@ def _cmd_protect(args: argparse.Namespace) -> int:
 
 
 def _cmd_report(args: argparse.Namespace) -> int:
-    import torch
-
+    from voidface.eval.perceptual import psnr, ssim
     from voidface.util.image import load_image
 
-    clean = load_image(args.original)
-    protected = load_image(args.protected)
+    clean = load_image(args.original).unsqueeze(0)
+    protected = load_image(args.protected).unsqueeze(0)
     if clean.shape != protected.shape:
-        print(f"error: shape mismatch clean={tuple(clean.shape)} protected={tuple(protected.shape)}",
-              file=sys.stderr)
+        print(
+            f"error: shape mismatch clean={tuple(clean.shape)} "
+            f"protected={tuple(protected.shape)}",
+            file=sys.stderr,
+        )
         return 2
 
-    mse = torch.mean((clean - protected) ** 2).item()
-    psnr = float("inf") if mse == 0.0 else 10 * torch.log10(torch.tensor(1.0 / mse)).item()
-    linf = (clean - protected).abs().max().item()
-    print(f"PSNR: {psnr:.2f} dB")
-    print(f"L-inf: {linf:.4f}  ({linf * 255:.2f}/255)")
+    print(f"PSNR:   {psnr(clean, protected):.2f} dB")
+    print(f"SSIM:   {ssim(clean, protected):.4f}")
+    diff = (clean - protected).abs()
+    print(f"L-inf:  {diff.max().item() * 255:.2f}/255")
     return 0
 
 
@@ -199,18 +269,34 @@ def _resolve_device(name: str) -> object:
     return torch.device(name)
 
 
+def _renormalize(weights: dict[str, float]) -> None:
+    """Rescale ``weights`` in place so they sum to 1.0.
+
+    When the user selects a subset of targets we do not want the
+    remaining weights to be, say, 0.4 total. Renormalizing keeps the
+    per-family loss magnitude comparable across subsets.
+    """
+    total = sum(weights.values())
+    if total <= 0:
+        return
+    for k in weights:
+        weights[k] /= total
+
+
 def _print_summary(clean: object, adversarial: object, output: Path) -> None:
     import torch
 
+    from voidface.eval.perceptual import psnr, ssim
+
     if not isinstance(clean, torch.Tensor) or not isinstance(adversarial, torch.Tensor):
         return
-    diff = (clean - adversarial).abs()
-    mse = torch.mean(diff**2).item()
-    psnr = float("inf") if mse == 0.0 else 10 * torch.log10(torch.tensor(1.0 / mse)).item()
-    linf = diff.max().item()
+    p = psnr(clean, adversarial)
+    s = ssim(clean, adversarial)
+    linf = (clean - adversarial).abs().max().item()
     print("--- summary ---")
     print(f"output:  {output}")
-    print(f"PSNR:    {psnr:.2f} dB")
+    print(f"PSNR:    {p:.2f} dB")
+    print(f"SSIM:    {s:.4f}")
     print(f"L-inf:   {linf * 255:.2f}/255")
 
 

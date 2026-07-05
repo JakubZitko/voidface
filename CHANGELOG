@@ -1,6 +1,91 @@
 Voidface changelog. Newest at the top. Time flows downward.
 
 
+Voidface 0.0.3 — 2026-07-05 — Phase R2: restorer abstraction, VAE target, LPIPS
+
+    The bilevel-loss infrastructure lands and the ensemble grows from
+    (detector, recognizer) to (detector, recognizer, VAE) with a real
+    perceptual constraint.
+
+    Restorer subsystem:
+
+    * src/voidface/models/restorers/base.py — Restorer protocol and
+      RestorerSpec dataclass. Every restorer is a differentiable
+      image-to-image transform with the canonical layout preserved.
+    * src/voidface/models/restorers/identity.py — pass-through
+      restorer. Included in the restorer sample distribution so the
+      generator still learns to defeat un-restored pipelines.
+    * core/loss.py — CompositeLoss.compute accepts an optional
+      restorer. When passed, every target sees restorer(adversarial)
+      instead of adversarial; clean side is never restored.
+
+    New ensemble target family — VAEs:
+
+    * src/voidface/models/vaes/sd15.py — Stable Diffusion 1.5 VAE
+      encoder, loaded from stabilityai/sd-vae-ft-mse. Includes a
+      bypass loader that works around a diffusers 0.29 + torch 2.2
+      compatibility issue and a legacy-key remapper for the pre-
+      refactor attention weights.
+    * core/loss.py — vae_gray_latent_loss(perturbed, target_data=...)
+      drives ||E(x+delta) - E(gray)||^2, normalized per-latent-element.
+    * VAE surrogate accepts variable input size (rounded to stride 8,
+      capped at 512) so low-memory MPS devices do not OOM.
+
+    Perceptual metrics:
+
+    * src/voidface/eval/perceptual.py — PSNR, SSIM (depthwise Gaussian
+      window), and LPIPS loader. All accept the canonical layout.
+    * CompositeLoss accepts an optional LPIPS callable for the
+      perceptual budget; wired into the CLI as the default.
+    * `voidface report` prints PSNR + SSIM + L-inf.
+
+    CLI expansion:
+
+    * tools/cli/voidface_cli/main.py — `--targets` selects which
+      subset of the ensemble to use (`detector`, `recognizer`, `vae`).
+      Weights renormalize automatically. `--no-lpips` disables the
+      perceptual constraint for faster experiments.
+
+    Dependencies:
+
+    * Added diffusers (capped below 0.30 on Intel Mac) and
+      huggingface-hub for the VAE.
+    * facexlib pivot avoided; we bypass diffusers' state-dict loader
+      to keep torch 2.2 support intact.
+
+    Tests:
+
+    * tests/unit/test_restorer_identity.py — IdentityRestorer
+      satisfies the Restorer protocol and preserves inputs bit-for-bit.
+    * tests/unit/test_perceptual.py — PSNR and SSIM basic properties
+      (equal images -> inf / 1.0; more noise -> lower PSNR).
+    * tests/unit/test_composite_loss.py — signature dispatch (single
+      arg vs pair vs target_data kwarg); zero-weight targets skipped;
+      IdentityRestorer wrapping matches unwrapped loss.
+    * Suite is 19 tests, all passing.
+
+    Verification (Intel Mac Rosetta MPS, 256x256 synthetic input):
+
+    * (detector, recognizer): recognizer loss 1.98 -> 0.03 in 20
+      steps, SSIM 0.60 without LPIPS.
+    * (detector, recognizer, vae) with LPIPS: recognizer engaged at
+      1.85, VAE latent MSE 58 -> 30 (48% drop) in 3 steps, SSIM 0.96.
+      Perceptual invisibility is meaningfully better with LPIPS.
+
+    Known limits (updated in Documentation/limits.md):
+
+    * Detector and recognizer are still Phase R1 stand-ins
+      (mtcnn-pnet, facenet-vggface2). Real RetinaFace + ArcFace lands
+      in Phase R3.
+    * No real face restorer (GFPGAN, CodeFormer, Real-ESRGAN) yet;
+      the identity restorer is the only sampled instance. Real
+      restorers are the Phase R3 headline.
+    * SDXL, Flux VAE, OpenCLIP, SigLIP, DINOv2 land alongside the
+      real detectors and restorers in Phase R3.
+    * Trained generator G is not yet built; the CLI still runs
+      per-image PGD.
+
+
 Voidface 0.0.2 — 2026-07-05 — Phase R1: end-to-end PGD baseline
 
     First working adversarial pipeline. `voidface protect <image>` runs
