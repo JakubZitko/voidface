@@ -251,6 +251,14 @@ def run(args: argparse.Namespace) -> int:  # noqa: PLR0911
         )
         return 2
 
+    if args.semantic_warp is not None and args.semantic_warp < 0.0:
+        log.error(
+            "semantic_warp.negative",
+            got=args.semantic_warp,
+            hint="--semantic-warp is a positive max-pixel-displacement bound",
+        )
+        return 2
+
     device = resolve_device(args.device)
     log.info("device.selected", device=str(device))
 

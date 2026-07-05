@@ -67,3 +67,17 @@ def test_iris_ratio_below_one_rejected(tmp_path) -> None:  # noqa: ANN001
         ]
     )
     assert rc == 2
+
+
+def test_negative_semantic_warp_rejected(tmp_path) -> None:  # noqa: ANN001
+    """`--semantic-warp -1.0` is nonsensical (max-displacement must be positive)."""
+    from voidface_cli.main import main
+
+    img = tmp_path / "x.png"
+    img.write_bytes(b"not a real image")
+    rc = main(
+        [
+            "protect", str(img), "--semantic-warp", "-1.0",
+        ]
+    )
+    assert rc == 2
