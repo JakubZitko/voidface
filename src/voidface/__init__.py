@@ -17,4 +17,6 @@ from __future__ import annotations
 
 __all__ = ["__version__"]
 
-__version__ = "0.0.1"
+# Session 2026-07-05 walked from 0.0.1 through R7.33 with 80+ commits.
+# The version pinned here is the currently-shipping semver.
+__version__ = "0.1.0"

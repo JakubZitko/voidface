@@ -2,14 +2,14 @@
 
 [project]
 name = "voidface-cli"
-version = "0.0.1"
+version = "0.1.0"
 description = "Command-line interface to the Voidface generator."
 readme = { file = "../../README", content-type = "text/plain" }
 requires-python = ">=3.11"
 license = { file = "../../COPYING" }
 
 dependencies = [
-    "voidface==0.0.1",
+    "voidface==0.1.0",
 ]
 
 [project.scripts]

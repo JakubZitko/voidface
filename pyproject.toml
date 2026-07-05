@@ -2,7 +2,7 @@
 
 [project]
 name = "voidface"
-version = "0.0.1"
+version = "0.1.0"
 description = "Adversarial face-region blindfold for photos and short videos."
 readme = { file = "README", content-type = "text/plain" }
 requires-python = ">=3.11"
