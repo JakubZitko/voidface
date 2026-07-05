@@ -43,6 +43,8 @@ def main(argv: Sequence[str] | None = None) -> int:
         return _cmd_bench(args)
     if args.command == "protect-video":
         return _cmd_protect_video(args)
+    if args.command == "info":
+        return _cmd_info(args)
 
     parser.print_help(sys.stderr)
     return 2
@@ -309,6 +311,17 @@ def _build_parser() -> argparse.ArgumentParser:
             "only the warped prior. Default 0.7 — heavily weighted to the "
             "warped prior with a fresh G contribution to track scene changes."
         ),
+    )
+
+    p_info = sub.add_parser(
+        "info",
+        help="Print metadata about a checkpoint (config, params, training step).",
+    )
+    p_info.add_argument("checkpoint", type=Path, help="Path to a .pt checkpoint.")
+    p_info.add_argument(
+        "--json",
+        action="store_true",
+        help="Emit machine-readable JSON instead of the human summary.",
     )
 
     return parser
@@ -654,6 +667,66 @@ def _cmd_report(args: argparse.Namespace) -> int:
 
 
 _ALLOWED_RESTORERS = {"identity", "sd15-vae", "gfpgan"}
+
+
+def _cmd_info(args: argparse.Namespace) -> int:
+    """Print a checkpoint's metadata."""
+    import json
+    import sys
+
+    import torch
+
+    from voidface.generator.architecture import Voidface, VoidfaceConfig
+
+    if not args.checkpoint.exists():
+        print(f"error: checkpoint not found: {args.checkpoint}", file=sys.stderr)
+        return 2
+
+    payload = torch.load(args.checkpoint, map_location="cpu", weights_only=False)
+    if isinstance(payload, dict) and "state_dict" in payload:
+        state_dict = payload["state_dict"]
+        stored = payload.get("config")
+        config = stored if isinstance(stored, VoidfaceConfig) else VoidfaceConfig()
+        step = payload.get("step")
+    else:
+        state_dict = payload
+        config = VoidfaceConfig()
+        step = None
+
+    generator = Voidface(config)
+    generator.load_state_dict(state_dict)
+    param_count = sum(p.numel() for p in generator.parameters())
+    trainable_param_count = sum(p.numel() for p in generator.parameters() if p.requires_grad)
+
+    info = {
+        "path": str(args.checkpoint),
+        "file_size_bytes": args.checkpoint.stat().st_size,
+        "training_step": step,
+        "param_count": param_count,
+        "trainable_param_count": trainable_param_count,
+        "config": {
+            "epsilon": config.epsilon,
+            "base_channels": config.base_channels,
+            "num_stages": config.num_stages,
+            "attention_at_bottleneck": config.attention_at_bottleneck,
+        },
+    }
+
+    if args.json:
+        print(json.dumps(info, indent=2))
+    else:
+        print("--- checkpoint info ---")
+        print(f"path:           {info['path']}")
+        print(f"file size:      {info['file_size_bytes'] / 1024 / 1024:.2f} MB")
+        step_display = "unknown" if step is None else str(step)
+        print(f"training step:  {step_display}")
+        print(f"params:         {param_count:,}")
+        print(f"trainable:      {trainable_param_count:,}")
+        print(f"epsilon:        {config.epsilon:.6f}  (~{config.epsilon * 255:.1f}/255)")
+        print(f"base channels:  {config.base_channels}")
+        print(f"num stages:     {config.num_stages}")
+        print(f"attention:      {config.attention_at_bottleneck}")
+    return 0
 
 
 def _cmd_protect_video(args: argparse.Namespace) -> int:
