@@ -27,3 +27,19 @@ def test_missing_batch_dir_and_file_returns_exit_code_2(tmp_path: Path) -> None:
     ghost = tmp_path / "does_not_exist"
     rc = main(["protect", str(ghost)])
     assert rc == 2
+
+
+def test_missing_generator_checkpoint_returns_exit_code_2(tmp_path: Path) -> None:
+    """--use-generator pointing at a missing .pt returns 2, not a traceback."""
+    from voidface_cli.main import main
+
+    # Batch mode input dir exists, but checkpoint does not.
+    input_dir = tmp_path / "images"
+    input_dir.mkdir()
+    ghost_ckpt = tmp_path / "not_a_real_checkpoint.pt"
+    rc = main([
+        "protect", str(input_dir),
+        "--output-dir", str(tmp_path / "out"),
+        "--use-generator", str(ghost_ckpt),
+    ])
+    assert rc == 2

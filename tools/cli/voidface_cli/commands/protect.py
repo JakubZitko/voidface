@@ -244,6 +244,14 @@ def run(args: argparse.Namespace) -> int:  # noqa: PLR0911
         )
         return 2
 
+    if args.use_generator is not None and not args.use_generator.exists():
+        log.error(
+            "generator.checkpoint.not_found",
+            path=str(args.use_generator),
+            hint="produce one with `voidface train cfg.toml` or download a release .pt",
+        )
+        return 2
+
     if args.image.is_dir():
         return _protect_batch(args, device, log)
 
