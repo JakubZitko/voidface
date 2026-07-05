@@ -20,22 +20,40 @@ exported to CoreML / ONNX / WASM per
 - **Universally applicable.** Should protect any face, any pose,
   any lighting. No per-user finetune required.
 
-## Architecture
-
-A conditional U-Net variant with:
-
-- Encoder: 4 downsample stages, group-norm, GELU.
-- Bottleneck: two self-attention blocks over 32×32 features (256-D).
-- Decoder: 4 upsample stages, skip connections from the encoder.
-- Final layer: `tanh` projected to `[-epsilon, +epsilon]` per pixel.
-- Output image is `clip(input + G_delta, 0, 1)`.
-
-Parameter count target: 5–10 M (float32), ≤ 4 M after 8-bit quant.
+## Architecture (as shipped in R5.1)
 
 The concrete architecture lives in
-`src/voidface/generator/architecture.py`. It is deliberately small; we
-optimize for train-time-cost-vs-inference-cost tradeoff, and the
-inference-cost side of that tradeoff is the constraint.
+`src/voidface/generator/architecture.py`; the summary here matches
+the code:
+
+- **Encoder.** 4 stages of ``_ResidualBlock(GroupNorm → GELU → 3×3
+  Conv → GroupNorm → GELU → 3×3 Conv + skip)`` followed by a 2×2
+  stride-2 conv downsample. Channel schedule: `base_channels`
+  doubles per stage (16 → 32 → 64 → 128 → 256) with a cap at 384.
+- **Bottleneck.** Two residual blocks at the deepest channel width.
+  A self-attention block is available via
+  `VoidfaceConfig.attention_at_bottleneck=True` but is off by default
+  in R5.1 for CoreML export cleanliness.
+- **Decoder.** 4 stages mirroring the encoder — 2×2 stride-2
+  transposed conv upsample, concat with the encoder skip, then a
+  `_ResidualBlock` that ingests `2 * channels`. The channel schedule
+  reverses (256 → 128 → 64 → 32 → 16).
+- **Head.** GroupNorm → GELU → 3×3 Conv → 3 output channels.
+- **Delta projection.** `torch.tanh(raw) * epsilon`, added to input,
+  clamped to `[0, 1]`. `epsilon` can be overridden per forward for
+  deploy-time budget control.
+
+At the default `base_channels=16` (the R5.1 shipping config), the
+generator has ~5.35 M parameters float32 → ~21 MB fp32 → ~5.5 MB
+int8 after static quantization. Well inside the R5 ≤ 15 MB shipping
+ceiling.
+
+**Input constraint.** Height and width must be divisible by
+`2^num_stages` (16 at the default four stages). The CLI's protect /
+batch / protect-video paths reflect-pad and crop; the generator's
+`forward` skips shape validation when
+`torch.jit.is_tracing()` returns True so ONNX export produces a
+shape-agnostic graph.
 
 ## What G is *not*
 
