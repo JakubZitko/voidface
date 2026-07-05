@@ -116,6 +116,19 @@ def _build_parser() -> argparse.ArgumentParser:
             "loads the RetinaFace detector for landmarks."
         ),
     )
+    p_protect.add_argument(
+        "--use-generator",
+        type=Path,
+        default=None,
+        metavar="CHECKPOINT",
+        help=(
+            "Skip the per-image PGD loop entirely; run one forward pass through "
+            "a trained generator G loaded from CHECKPOINT. This is the deploy "
+            "path — turns ~2 min of PGD into <1 s of generator forward. "
+            "Ignores --targets, --restorers, --steps, and other PGD-related "
+            "flags; --epsilon is still applied as the L-inf budget."
+        ),
+    )
 
     p_report = sub.add_parser(
         "report",
@@ -231,6 +244,10 @@ def _cmd_protect(args: argparse.Namespace) -> int:
     log.info("image.loading", path=str(args.image))
     clean = load_image(args.image).to(device).unsqueeze(0)
     log.info("image.loaded", shape=tuple(clean.shape))
+
+    # Deploy fast-path — skip PGD entirely.
+    if args.use_generator is not None:
+        return _protect_via_generator(args, clean, log)
 
     selected = {t.strip() for t in args.targets.split(",") if t.strip()}
     allowed = {"detector", "recognizer", "vae", "sdxl-vae", "openclip"}
@@ -384,6 +401,65 @@ def _cmd_protect(args: argparse.Namespace) -> int:
     log.info("image.saved", path=str(output))
 
     _print_summary(clean=clean, adversarial=result.adversarial, output=output)
+    return 0
+
+
+def _protect_via_generator(args: argparse.Namespace, clean, log) -> int:  # noqa: ANN001
+    """`voidface protect --use-generator` fast path: one G forward.
+
+    Loads the checkpoint written by :func:`voidface.core.train.train_generator`,
+    reconstructs the :class:`Voidface` with its saved config, and produces
+    the protected image in a single forward pass.
+    """
+    import torch
+
+    from voidface.generator.architecture import Voidface, VoidfaceConfig
+    from voidface.util.image import save_image
+
+    log.info("generator.loading", path=str(args.use_generator))
+    payload = torch.load(args.use_generator, map_location="cpu", weights_only=False)
+    if isinstance(payload, dict) and "state_dict" in payload:
+        state_dict = payload["state_dict"]
+        stored = payload.get("config")
+        config = stored if isinstance(stored, VoidfaceConfig) else VoidfaceConfig()
+    else:
+        state_dict = payload
+        config = VoidfaceConfig()
+
+    device = clean.device
+    generator = Voidface(config).to(device).eval()
+    generator.load_state_dict(state_dict)
+    log.info(
+        "generator.loaded",
+        params=sum(p.numel() for p in generator.parameters()),
+    )
+
+    # G expects side lengths divisible by 2^num_stages; pad to the next multiple.
+    divisor = 1 << config.num_stages
+    original_hw = clean.shape[-2:]
+    padded_h = (original_hw[0] + divisor - 1) // divisor * divisor
+    padded_w = (original_hw[1] + divisor - 1) // divisor * divisor
+    if (padded_h, padded_w) != original_hw:
+        import torch.nn.functional as F
+
+        clean_padded = F.pad(
+            clean,
+            (0, padded_w - original_hw[1], 0, padded_h - original_hw[0]),
+            mode="reflect",
+        )
+    else:
+        clean_padded = clean
+
+    with torch.no_grad():
+        adversarial = generator(clean_padded, epsilon=args.epsilon / 255.0)
+
+    # Crop off the pad before saving.
+    adversarial = adversarial[..., : original_hw[0], : original_hw[1]]
+
+    output = args.output or args.image.with_suffix(".protected.png")
+    save_image(adversarial.squeeze(0), output)
+    log.info("image.saved", path=str(output))
+    _print_summary(clean=clean, adversarial=adversarial, output=output)
     return 0
 
 
