@@ -123,7 +123,7 @@ def run(args: argparse.Namespace) -> int:
     class _Neutral(torch.nn.Module):
         """Fallback used when a family is disabled — full presence / identity."""
 
-        def forward(self, image):
+        def forward(self, image: torch.Tensor) -> TargetOutputs:
             n = image.size(0)
             if "detector" in bench_targets:
                 return TargetOutputs(embedding=torch.ones(n, 4) / 2.0)
@@ -132,6 +132,8 @@ def run(args: argparse.Namespace) -> int:
                 embedding=torch.ones(n, 4) / 2.0,
             )
 
+    detector: torch.nn.Module
+    recognizer: torch.nn.Module
     if "detector" in bench_targets:
         log.info("model.detector.loading", name="retinaface-r50")
         detector = RetinaFace(device=device)

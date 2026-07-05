@@ -80,9 +80,11 @@ def run(args: argparse.Namespace) -> int:
             augment=False,
         )
 
-        def _iterator():
-            import numpy as np  # noqa: PLC0415
+        from collections.abc import Iterator  # noqa: PLC0415
 
+        import numpy as np  # noqa: PLC0415
+
+        def _iterator() -> Iterator[np.ndarray]:  # type: ignore[type-arg]
             limit = min(args.quantize_static_samples, len(dataset))
             for i in range(limit):
                 yield dataset[i].unsqueeze(0).cpu().numpy().astype(np.float32)
