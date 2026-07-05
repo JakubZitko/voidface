@@ -1048,24 +1048,10 @@ def _protect_via_generator(args: argparse.Namespace, clean, log) -> int:  # noqa
 
 
 def _cmd_report(args: argparse.Namespace) -> int:
-    from voidface.eval.perceptual import psnr, ssim
-    from voidface.util.image import load_image
+    """Extracted to voidface_cli.commands.report."""
+    from voidface_cli.commands import report as _report_cmd
 
-    clean = load_image(args.original).unsqueeze(0)
-    protected = load_image(args.protected).unsqueeze(0)
-    if clean.shape != protected.shape:
-        print(
-            f"error: shape mismatch clean={tuple(clean.shape)} "
-            f"protected={tuple(protected.shape)}",
-            file=sys.stderr,
-        )
-        return 2
-
-    print(f"PSNR:   {psnr(clean, protected):.2f} dB")
-    print(f"SSIM:   {ssim(clean, protected):.4f}")
-    diff = (clean - protected).abs()
-    print(f"L-inf:  {diff.max().item() * 255:.2f}/255")
-    return 0
+    return _report_cmd.run(args)
 
 
 # --- helpers -----------------------------------------------------------------
