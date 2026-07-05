@@ -64,6 +64,8 @@ def _build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
         prog="voidface",
         description="Voidface — adversarial face-region blindfold.",
+        formatter_class=argparse.RawDescriptionHelpFormatter,
+        epilog=_WORKFLOW_HELP,
     )
     parser.add_argument("--version", action="version", version=f"voidface {voidface.__version__}")
     sub = parser.add_subparsers(dest="command", metavar="<command>")
@@ -786,6 +788,38 @@ def _cmd_report(args: argparse.Namespace) -> int:
 
 
 _ALLOWED_RESTORERS = {"identity", "sd15-vae", "gfpgan"}
+
+
+_WORKFLOW_HELP = """
+End-to-end workflow
+-------------------
+
+Train:      voidface train samples/configs/train_full.toml
+Validate:   voidface bench runs/step-050000.pt path/to/test/ --json bench.json --limit 200
+Export:     voidface export runs/step-050000.pt out/voidface.onnx \\
+                --quantize int8 --quantize-static-dir cal/ --coreml --ort
+
+Deploy one image (fast path):
+    voidface protect user.jpg --use-generator runs/step-050000.pt --face-mask
+
+Deploy one image (highest quality):
+    voidface protect user.jpg --use-generator runs/step-050000.pt --refine-steps 20
+
+Deploy a folder:
+    voidface protect folder/ --output-dir out/ --use-generator runs/step-050000.pt
+
+Deploy a video:
+    voidface protect-video clip.mp4 out.mp4 \\
+        --use-generator runs/step-050000.pt --temporal-blend 0.7 --face-mask
+
+Inspect a checkpoint:
+    voidface info runs/step-050000.pt
+
+Validate a training config before starting:
+    voidface config-check samples/configs/train_full.toml
+
+Documentation/status.md is the authoritative "what ships today" reference.
+"""
 
 
 def _cmd_config_check(args: argparse.Namespace) -> int:
