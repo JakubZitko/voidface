@@ -1127,26 +1127,10 @@ def _cmd_verify(args: argparse.Namespace) -> int:
 
 
 def _cmd_init(args: argparse.Namespace) -> int:
-    """Write a starter TOML for a common training scenario.
+    """Extracted to voidface_cli.commands.init."""
+    from voidface_cli.commands import init as _init_cmd
 
-    Preset content lives under ``voidface_cli/init_presets/<name>.toml``
-    so the presets are trivially reviewable and diffable without
-    scrolling through a huge Python string constant.
-    """
-    preset_path = (
-        Path(__file__).parent / "init_presets" / f"{args.preset}.toml"
-    )
-    if not preset_path.exists():
-        print(f"error: preset {args.preset!r} not found", file=sys.stderr)
-        return 2
-    text = preset_path.read_text()
-    if args.output is not None:
-        args.output.parent.mkdir(parents=True, exist_ok=True)
-        args.output.write_text(text)
-        print(f"wrote {args.output}", file=sys.stderr)
-    else:
-        print(text)
-    return 0
+    return _init_cmd.run(args)
 
 
 def _cmd_package(args: argparse.Namespace) -> int:
