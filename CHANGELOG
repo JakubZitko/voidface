@@ -1,6 +1,45 @@
 Voidface changelog. Newest at the top. Time flows downward.
 
 
+Voidface 0.0.15 — 2026-07-05 — Phase R5.3b: voidface train CLI subcommand
+
+    The training loop is now one command away. `voidface train
+    <config.toml>` wires together FolderImageDataset, DataLoader,
+    CompositeLoss, EotSampler, RestorerSampler, and train_generator
+    from a single TOML file — the same shape every prior smoke
+    config uses so training runs are reproducible from disk.
+
+    New:
+
+    * tools/cli/voidface_cli/main.py — new `train` subcommand plus
+      _cmd_train() and _build_targets() helpers. TOML sections:
+        [experiment]  name, seed, steps, log_every, checkpoint_every,
+                      checkpoint_dir
+        [data]        directory, resolution, batch_size, augment
+        [optim]       learning_rate, weight_decay, epsilon_frac,
+                      eot_samples
+        [loss.perceptual]  lpips_weight, tv_weight
+        [targets.*]   enabled + weight per surrogate
+        [restorers]   name = weight pairs for the RestorerSampler
+    * samples/configs/train_r5_smoke.toml — reference config that
+      exercises the CLI wiring without any external weight downloads
+      (all targets disabled, restorer = identity, TV-only loss).
+      Real training configs enable the target subset the researcher
+      cares about.
+
+    `voidface train --help` renders. `voidface train samples/configs/
+    train_r5_smoke.toml --device cpu` runs the loop against
+    samples/images/ (a synthetic ellipse) and exits cleanly.
+
+    Tests:
+
+    * Suite is 69 tests, all passing. The CLI train path is not
+      unit-tested end-to-end because the interesting convergence
+      test already lives in tests/unit/test_train_generator.py; a
+      CLI wrapper test would either mock every surrogate or pull
+      weights, and both erode signal.
+
+
 Voidface 0.0.14 — 2026-07-05 — Phase R5.3a: face-image dataset pipeline
 
     train_generator() from R5.2 accepted any batch iterator; this

@@ -1,0 +1,50 @@
+# SPDX-License-Identifier: MIT
+#
+# Phase R5.3 smoke training config.
+#
+# Very short run against a folder of images. Detector + recognizer
+# only (no VAE / CLIP / restorer to keep the smoke test fast and
+# offline). Points at samples/images/ by default; override
+# [data].directory to a real face-crop folder for a meaningful run.
+
+[experiment]
+name = "r5.3-smoke"
+seed = 0
+steps = 20
+log_every = 5
+checkpoint_every = 20
+checkpoint_dir = "runs/r5.3-smoke"
+
+[data]
+directory = "samples/images"
+resolution = 64
+batch_size = 1
+augment = false
+
+[optim]
+learning_rate = 1e-3
+weight_decay = 1e-6
+epsilon_frac = 0.047       # 12/255
+eot_samples = 1
+
+[loss.perceptual]
+lpips_weight = 0.0         # smoke run: no LPIPS to avoid weight download
+tv_weight = 0.01
+
+[targets.detector]
+enabled = false            # smoke run: no external weight downloads
+
+[targets.recognizer]
+enabled = false
+
+[targets.vae]
+enabled = false
+
+[targets."sdxl-vae"]
+enabled = false
+
+[targets.openclip]
+enabled = false
+
+[restorers]
+identity = 1.0
