@@ -123,3 +123,25 @@ If a released checkpoint turns out to have a regression:
 3. Cut a `0.1.1` (or equivalent) point-release with the fix.
 4. Do NOT delete or move the buggy release from the CDN — cached
    installers may still reference it.
+
+---
+
+## Beyond 0.2.0 — ensemble growth roadmap
+
+The initial shipped ensemble (RetinaFace-R50 + ArcFace-IResNet-100 +
+SD 1.5 VAE + SDXL VAE + OpenAI CLIP ViT-B/32) is a floor, not a
+ceiling. Each release cycle should consider extending the ensemble
+along one of these axes so protection generalizes better to
+pipelines we have not seen. New targets each need a `TargetSpec`
+subclass, a loss function, and integration in `commands/train.py`
+and `commands/protect.py`:
+
+  detectors     SCRFD, YuNet, MTCNN
+  recognizers   MagFace, AdaFace
+  VAEs          Flux VAE
+  vision-lang   SigLIP, DINOv2
+
+Ensemble additions are additive — a 0.3.0 release with `magface` in
+the training loop should still ship a checkpoint that a 0.2.0-era
+downstream tool can load, because the shipped artifact is the
+generator, not the target set.
