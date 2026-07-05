@@ -91,9 +91,11 @@ def run(args: argparse.Namespace) -> int:
             args.calibration_dir, resolution=args.example_resolution, augment=False
         )
 
-        def _iter():
-            import numpy as np  # noqa: PLC0415
+        from collections.abc import Iterator  # noqa: PLC0415
 
+        import numpy as np  # noqa: PLC0415
+
+        def _iter() -> Iterator[np.ndarray]:  # type: ignore[type-arg]
             for i in range(min(64, len(dataset))):
                 yield dataset[i].unsqueeze(0).cpu().numpy().astype(np.float32)
 
