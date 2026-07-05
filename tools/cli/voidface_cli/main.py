@@ -853,8 +853,23 @@ def _load_generator_checkpoint(path: Path, device, log):  # noqa: ANN001,ANN202
 
     from voidface.generator.architecture import Voidface, VoidfaceConfig
 
+    if not path.exists():
+        msg = (
+            f"checkpoint not found: {path}. "
+            f"Produce one with `voidface train cfg.toml` or point at a "
+            f"downloaded release .pt file."
+        )
+        raise FileNotFoundError(msg)
+
     log.info("generator.loading", path=str(path))
-    payload = torch.load(path, map_location="cpu", weights_only=False)
+    try:
+        payload = torch.load(path, map_location="cpu", weights_only=False)
+    except Exception as exc:
+        msg = (
+            f"could not load checkpoint at {path}. Expected a torch pickle "
+            f"produced by voidface train. Original error: {type(exc).__name__}: {exc}"
+        )
+        raise RuntimeError(msg) from exc
     if isinstance(payload, dict) and "state_dict" in payload:
         state_dict = payload["state_dict"]
         stored = payload.get("config")
