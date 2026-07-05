@@ -62,7 +62,20 @@ Export:
 - :func:`voidface.export.ort.convert_onnx_to_ort` — ORT-Web format for
   the browser demo.
 
-CLI (9 subcommands as of R7.10):
+CLI (11 subcommands, dispatcher pattern):
+
+  * `tools/cli/voidface_cli/main.py` — argparse wiring + dispatch
+    table + shared helpers still local to _cmd_protect
+  * `tools/cli/voidface_cli/commands/` — one file per subcommand:
+    bench, config_check, export, info, init, package, protect_video,
+    report, train, verify (10 subcommand modules; _cmd_protect
+    itself still lives in main.py pending its own extraction)
+  * `tools/cli/voidface_cli/common.py` — shared helpers
+    (resolve_device, load_generator_checkpoint, renormalize_weights,
+    run_generator_and_save, ALLOWED_RESTORERS, ALLOWED_TARGETS)
+
+Subcommand surface:
+
 
 - `voidface protect <image>` — per-image PGD OR --use-generator fast
   path OR --face-mask restricted OR batch mode via `<dir> --output-dir`.
