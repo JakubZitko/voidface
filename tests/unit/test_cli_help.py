@@ -21,6 +21,7 @@ import pytest
         "bench",
         "export",
         "package",
+        "verify",
         "info",
         "config-check",
         "init",
