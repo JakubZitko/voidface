@@ -46,14 +46,38 @@
 
         voidface protect input.jpg -o protected.png --epsilon 12
 
+    Deploy fast path (~500ms per image, needs a trained checkpoint):
+
+        voidface protect input.jpg --use-generator ckpt.pt --face-mask
+
+    Batch a folder of images (generator loaded once):
+
+        voidface protect folder/ --output-dir out/ --use-generator ckpt.pt
+
+    Video with temporal blending:
+
+        voidface protect-video in.mp4 out.mp4 --use-generator ckpt.pt \
+            --temporal-blend 0.7 --face-mask
+
     Train the shipped generator:
 
         voidface train samples/configs/train_r5_smoke.toml
 
-    Export to every deploy artifact:
+    Bench with the release ship-gate:
+
+        voidface bench ckpt.pt test-images/ --strict
+
+    Bundle a release (ONNX + int8 + ORT + CoreML + checksums):
+
+        voidface package ckpt.pt release/ --calibration-dir cal/ --coreml
+        voidface verify release/
+
+    Export à la carte to every deploy artifact:
 
         voidface export ckpt.pt out/voidface.onnx \
             --quantize int8 --coreml --ort
+
+    See `voidface --help` for the full workflow reference.
 
 
   LAYOUT
