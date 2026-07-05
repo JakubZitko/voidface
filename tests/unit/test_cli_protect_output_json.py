@@ -75,6 +75,6 @@ def test_output_json_without_use_generator_omits_ckpt_hash(tmp_path: Path) -> No
     covered structurally by the code.
     """
     # Structural check only: verify the flag key exists.
-    from voidface_cli.main import _write_output_json
+    from voidface_cli.commands.protect import _write_output_json
 
     assert callable(_write_output_json)
