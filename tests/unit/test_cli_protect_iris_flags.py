@@ -95,3 +95,21 @@ def test_epsilon_out_of_range_rejected(tmp_path) -> None:  # noqa: ANN001
     assert main(["protect", str(img), "--epsilon", "256"]) == 2
     # Negative is nonsensical.
     assert main(["protect", str(img), "--epsilon", "-5"]) == 2
+
+
+def test_zero_steps_rejected(tmp_path) -> None:  # noqa: ANN001
+    """--steps 0 means no PGD iterations — degenerate."""
+    from voidface_cli.main import main
+
+    img = tmp_path / "x.png"
+    img.write_bytes(b"not a real image")
+    assert main(["protect", str(img), "--steps", "0"]) == 2
+
+
+def test_negative_refine_steps_rejected(tmp_path) -> None:  # noqa: ANN001
+    """--refine-steps -3 is nonsensical."""
+    from voidface_cli.main import main
+
+    img = tmp_path / "x.png"
+    img.write_bytes(b"not a real image")
+    assert main(["protect", str(img), "--refine-steps", "-3"]) == 2

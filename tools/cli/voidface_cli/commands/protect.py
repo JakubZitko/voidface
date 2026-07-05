@@ -267,6 +267,22 @@ def run(args: argparse.Namespace) -> int:  # noqa: PLR0911
         )
         return 2
 
+    if args.steps < 1:
+        log.error(
+            "steps.non_positive",
+            got=args.steps,
+            hint="--steps must be at least 1",
+        )
+        return 2
+
+    if args.refine_steps < 0:
+        log.error(
+            "refine_steps.negative",
+            got=args.refine_steps,
+            hint="--refine-steps must be >= 0 (0 disables refinement)",
+        )
+        return 2
+
     device = resolve_device(args.device)
     log.info("device.selected", device=str(device))
 
