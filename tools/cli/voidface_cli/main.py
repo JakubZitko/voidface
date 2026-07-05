@@ -41,6 +41,8 @@ def main(argv: Sequence[str] | None = None) -> int:
         return _cmd_export(args)
     if args.command == "bench":
         return _cmd_bench(args)
+    if args.command == "protect-video":
+        return _cmd_protect_video(args)
 
     parser.print_help(sys.stderr)
     return 2
@@ -265,6 +267,35 @@ def _build_parser() -> argparse.ArgumentParser:
             "human-readable print. Fields: count, detection_asr, "
             "mean_identity_cosine_plus_one, mean_psnr_db, mean_ssim, per_image."
         ),
+    )
+
+    p_pv = sub.add_parser(
+        "protect-video",
+        help="Protect a video file by applying the generator to every frame.",
+    )
+    p_pv.add_argument("input", type=Path, help="Input video path.")
+    p_pv.add_argument("output", type=Path, help="Output video path.")
+    p_pv.add_argument(
+        "--use-generator",
+        type=Path,
+        required=True,
+        metavar="CHECKPOINT",
+        help="Path to a trained .pt checkpoint. Video mode requires this.",
+    )
+    p_pv.add_argument(
+        "--epsilon", type=int, default=12, help="L-inf budget as N/255 (default 12)."
+    )
+    p_pv.add_argument(
+        "--device",
+        type=str,
+        default="auto",
+        help="Torch device: 'auto', 'cpu', 'cuda', 'mps' (default auto).",
+    )
+    p_pv.add_argument(
+        "--codec",
+        type=str,
+        default="mp4v",
+        help="FourCC output codec (default 'mp4v'; 'avc1' if your OpenCV supports it).",
     )
 
     return parser
@@ -610,6 +641,57 @@ def _cmd_report(args: argparse.Namespace) -> int:
 
 
 _ALLOWED_RESTORERS = {"identity", "sd15-vae", "gfpgan"}
+
+
+def _cmd_protect_video(args: argparse.Namespace) -> int:
+    """Per-frame video protection via the deploy fast path."""
+    import torch
+    import torch.nn.functional as F
+
+    from voidface.util.log import configure_logging, get_logger
+    from voidface.util.video import iter_frames, write_video
+
+    configure_logging(level="INFO")
+    log = get_logger("voidface.cli.protect-video")
+    device = _resolve_device(args.device)
+
+    generator, config = _load_generator_checkpoint(args.use_generator, device, log)
+    metadata, frames = iter_frames(args.input)
+    log.info(
+        "video.opened",
+        path=str(args.input),
+        width=metadata.width,
+        height=metadata.height,
+        fps=metadata.fps,
+        frame_count=metadata.frame_count,
+    )
+
+    divisor = 1 << config.num_stages
+    padded_h = (metadata.height + divisor - 1) // divisor * divisor
+    padded_w = (metadata.width + divisor - 1) // divisor * divisor
+    pad_bottom = padded_h - metadata.height
+    pad_right = padded_w - metadata.width
+    epsilon = args.epsilon / 255.0
+
+    def _protected_frames():  # noqa: ANN202
+        with torch.no_grad():
+            for index, frame in enumerate(frames):
+                frame = frame.unsqueeze(0).to(device)
+                if pad_bottom > 0 or pad_right > 0:
+                    frame_padded = F.pad(
+                        frame, (0, pad_right, 0, pad_bottom), mode="reflect"
+                    )
+                else:
+                    frame_padded = frame
+                adversarial = generator(frame_padded, epsilon=epsilon)
+                adversarial = adversarial[..., : metadata.height, : metadata.width]
+                if (index + 1) % 30 == 0:
+                    log.info("video.progress", frame=index + 1, total=metadata.frame_count)
+                yield adversarial.squeeze(0).cpu()
+
+    write_video(args.output, _protected_frames(), metadata, codec=args.codec)
+    log.info("video.written", path=str(args.output))
+    return 0
 
 
 def _cmd_bench(args: argparse.Namespace) -> int:
