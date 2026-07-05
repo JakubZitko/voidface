@@ -446,11 +446,10 @@ def _protect_batch(args: argparse.Namespace, device, log) -> int:  # noqa: ANN00
 
     Batch mode currently requires --use-generator — running per-image
     PGD on a large folder is impractical (~2 min per image). The
-    error path when --use-generator is missing is loud and points at
-    the deploy fast path.
+    generator is loaded exactly once regardless of batch size.
     """
     from voidface.data.datasets import collect_image_paths
-    from voidface.util.image import load_image, save_image
+    from voidface.util.image import load_image
 
     if args.output_dir is None:
         log.error(
@@ -469,19 +468,76 @@ def _protect_batch(args: argparse.Namespace, device, log) -> int:  # noqa: ANN00
     paths = collect_image_paths(args.image, recursive=args.recursive)
     log.info("batch.starting", count=len(paths), output_dir=str(args.output_dir))
 
+    # Hoist the checkpoint load out of the per-item hot path.
+    generator, config = _load_generator_checkpoint(args.use_generator, device, log)
+
     for index, path in enumerate(paths):
         log.info("batch.item", index=index + 1, total=len(paths), path=str(path))
         clean = load_image(path).to(device).unsqueeze(0)
-        # Reuse the single-image fast path, but redirect its output.
-        args_copy = argparse.Namespace(**vars(args))
-        args_copy.image = path
-        args_copy.output = args.output_dir / (path.stem + ".protected.png")
-        rc = _protect_via_generator(args_copy, clean, log)
-        if rc != 0:
-            log.error("batch.item_failed", index=index + 1, path=str(path), rc=rc)
-            return rc
+        output_path = args.output_dir / (path.stem + ".protected.png")
+        _run_generator_and_save(
+            generator=generator,
+            config=config,
+            clean=clean,
+            output_path=output_path,
+            epsilon_int=args.epsilon,
+        )
+        log.info("batch.item.done", path=str(output_path))
     log.info("batch.done", count=len(paths))
     return 0
+
+
+def _load_generator_checkpoint(path: Path, device, log):  # noqa: ANN001,ANN202
+    import torch
+
+    from voidface.generator.architecture import Voidface, VoidfaceConfig
+
+    log.info("generator.loading", path=str(path))
+    payload = torch.load(path, map_location="cpu", weights_only=False)
+    if isinstance(payload, dict) and "state_dict" in payload:
+        state_dict = payload["state_dict"]
+        stored = payload.get("config")
+        config = stored if isinstance(stored, VoidfaceConfig) else VoidfaceConfig()
+    else:
+        state_dict = payload
+        config = VoidfaceConfig()
+    generator = Voidface(config).to(device).eval()
+    generator.load_state_dict(state_dict)
+    log.info(
+        "generator.loaded", params=sum(p.numel() for p in generator.parameters())
+    )
+    return generator, config
+
+
+def _run_generator_and_save(  # noqa: ANN001,ANN201
+    generator,
+    config,
+    clean,
+    output_path: Path,
+    epsilon_int: int,
+):
+    import torch
+    import torch.nn.functional as F
+
+    from voidface.util.image import save_image
+
+    divisor = 1 << config.num_stages
+    original_hw = clean.shape[-2:]
+    padded_h = (original_hw[0] + divisor - 1) // divisor * divisor
+    padded_w = (original_hw[1] + divisor - 1) // divisor * divisor
+    if (padded_h, padded_w) != original_hw:
+        clean_padded = F.pad(
+            clean,
+            (0, padded_w - original_hw[1], 0, padded_h - original_hw[0]),
+            mode="reflect",
+        )
+    else:
+        clean_padded = clean
+    with torch.no_grad():
+        adversarial = generator(clean_padded, epsilon=epsilon_int / 255.0)
+    adversarial = adversarial[..., : original_hw[0], : original_hw[1]]
+    save_image(adversarial.squeeze(0), output_path)
+    return adversarial
 
 
 def _protect_via_generator(args: argparse.Namespace, clean, log) -> int:  # noqa: ANN001
@@ -491,53 +547,15 @@ def _protect_via_generator(args: argparse.Namespace, clean, log) -> int:  # noqa
     reconstructs the :class:`Voidface` with its saved config, and produces
     the protected image in a single forward pass.
     """
-    import torch
-
-    from voidface.generator.architecture import Voidface, VoidfaceConfig
-    from voidface.util.image import save_image
-
-    log.info("generator.loading", path=str(args.use_generator))
-    payload = torch.load(args.use_generator, map_location="cpu", weights_only=False)
-    if isinstance(payload, dict) and "state_dict" in payload:
-        state_dict = payload["state_dict"]
-        stored = payload.get("config")
-        config = stored if isinstance(stored, VoidfaceConfig) else VoidfaceConfig()
-    else:
-        state_dict = payload
-        config = VoidfaceConfig()
-
-    device = clean.device
-    generator = Voidface(config).to(device).eval()
-    generator.load_state_dict(state_dict)
-    log.info(
-        "generator.loaded",
-        params=sum(p.numel() for p in generator.parameters()),
-    )
-
-    # G expects side lengths divisible by 2^num_stages; pad to the next multiple.
-    divisor = 1 << config.num_stages
-    original_hw = clean.shape[-2:]
-    padded_h = (original_hw[0] + divisor - 1) // divisor * divisor
-    padded_w = (original_hw[1] + divisor - 1) // divisor * divisor
-    if (padded_h, padded_w) != original_hw:
-        import torch.nn.functional as F
-
-        clean_padded = F.pad(
-            clean,
-            (0, padded_w - original_hw[1], 0, padded_h - original_hw[0]),
-            mode="reflect",
-        )
-    else:
-        clean_padded = clean
-
-    with torch.no_grad():
-        adversarial = generator(clean_padded, epsilon=args.epsilon / 255.0)
-
-    # Crop off the pad before saving.
-    adversarial = adversarial[..., : original_hw[0], : original_hw[1]]
-
+    generator, config = _load_generator_checkpoint(args.use_generator, clean.device, log)
     output = args.output or args.image.with_suffix(".protected.png")
-    save_image(adversarial.squeeze(0), output)
+    adversarial = _run_generator_and_save(
+        generator=generator,
+        config=config,
+        clean=clean,
+        output_path=output,
+        epsilon_int=args.epsilon,
+    )
     log.info("image.saved", path=str(output))
     _print_summary(clean=clean, adversarial=adversarial, output=output)
     return 0
