@@ -1,6 +1,57 @@
 Voidface changelog. Newest at the top. Time flows downward.
 
 
+Voidface 0.0.5 — 2026-07-05 — Phase R4.1 + R4.2: shared VAE loader, SDXL VAE
+
+    Preparation and second VAE-family target for the R4 ensemble
+    expansion. Non-controversial commits so the harder R4.3-R4.5 work
+    (real ArcFace, real RetinaFace, real face restorer in bilevel
+    loop) lands on a clean base.
+
+    R4.1 — Shared VAE bypass loader:
+
+    * src/voidface/models/vaes/_diffusers_loader.py — new module
+      exposing ``load_autoencoder_kl(model_id, device, subfolder=...)``
+      and ``normalize_legacy_attention_keys(state_dict)``. Wraps
+      huggingface_hub.hf_hub_download + safetensors.torch.load_file
+      + AutoencoderKL(**config), plus the legacy attention key rename
+      (query/key/value/proj_attn -> to_q/to_k/to_v/to_out.0).
+    * src/voidface/models/vaes/sd15.py — refactored to import the
+      helper. Loader duplication removed; behavior unchanged.
+    * pyproject.toml — LICENSES/ added to sdist include list (per the
+      R4 packaging critic; upcoming vendored files ship license
+      headers to LICENSES/ so downstream tarballs must include them).
+
+    R4.2 — SDXL VAE surrogate:
+
+    * src/voidface/models/vaes/sdxl.py — SdxlVae, mirrors sd15.py's
+      shape verbatim but pulls madebyollin/sdxl-vae-fp16-fix (334 MB)
+      through the shared loader. Preferred input size 256 for
+      Intel-Mac MPS headroom. Latent scaling factor 0.13025.
+    * SDXL VAE encoder attacks transfer to SD 1.5 VAE at only ~30%
+      per the R4 research; this is a genuinely separate ensemble
+      target, not a weight-swap of Sd15Vae.
+    * All bilinear resizes use antialias=True per the model-
+      correctness critic.
+    * CLI — 'sdxl-vae' added to --targets. Weight 0.15 in the default
+      composite. Auto-loads no restorer (identity by default).
+
+    Tests:
+
+    * tests/unit/test_sdxl_vae_smoke.py — module import, spec check,
+      monkey-patched AutoencoderKL to exercise the wrapper wiring
+      without pulling 334 MB in CI.
+    * Suite is 29 tests, all passing.
+
+    What R4.1 + R4.2 explicitly do NOT ship:
+
+    * Real ArcFace (R4.3), real RetinaFace (R4.4), GFPGAN in bilevel
+      loop (R4.5 — the actual R4 headline), OpenCLIP ViT-B/32 (R4.6).
+      Each has a research plan and a critic-approved integration
+      sketch in the Phase R4 workflow output; they land in follow-up
+      commits.
+
+
 Voidface 0.0.4 — 2026-07-05 — Phase R3: bilevel loop, SD-VAE restorer
 
     The bilevel objective becomes real. A restorer is now sampled per

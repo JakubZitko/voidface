@@ -85,9 +85,10 @@ def _build_parser() -> argparse.ArgumentParser:
         type=str,
         default="detector,recognizer",
         help=(
-            "Comma-separated target subset. Options: 'detector', 'recognizer', 'vae'. "
-            "Default: 'detector,recognizer' (Phase R1 subset). Use "
-            "'detector,recognizer,vae' for the full Phase R2 ensemble."
+            "Comma-separated target subset. Options: 'detector', 'recognizer', "
+            "'vae' (SD 1.5), 'sdxl-vae'. Default: 'detector,recognizer' (Phase R1 "
+            "subset). Use 'detector,recognizer,vae,sdxl-vae' for the R4 VAE-family "
+            "ensemble."
         ),
     )
     p_protect.add_argument(
@@ -153,7 +154,7 @@ def _cmd_protect(args: argparse.Namespace) -> int:
     log.info("image.loaded", shape=tuple(clean.shape))
 
     selected = {t.strip() for t in args.targets.split(",") if t.strip()}
-    allowed = {"detector", "recognizer", "vae"}
+    allowed = {"detector", "recognizer", "vae", "sdxl-vae"}
     if not selected.issubset(allowed):
         unknown = sorted(selected - allowed)
         log.error("targets.unknown", unknown=unknown, allowed=sorted(allowed))
@@ -197,7 +198,19 @@ def _cmd_protect(args: argparse.Namespace) -> int:
         gray_target = vae.encode_gray_target(height=clean.shape[-2], width=clean.shape[-1])
         target_losses["vae"] = (vae, vae_gray_latent_loss)
         target_static_data["vae"] = gray_target
-        weights_targets["vae"] = 0.25
+        weights_targets["vae"] = 0.20
+
+    if "sdxl-vae" in selected:
+        from voidface.models.vaes.sdxl import SdxlVae
+
+        log.info("model.sdxl-vae.loading", name="sdxl-vae")
+        sdxl_vae = SdxlVae(device=device)
+        sdxl_gray_target = sdxl_vae.encode_gray_target(
+            height=clean.shape[-2], width=clean.shape[-1]
+        )
+        target_losses["sdxl-vae"] = (sdxl_vae, vae_gray_latent_loss)
+        target_static_data["sdxl-vae"] = sdxl_gray_target
+        weights_targets["sdxl-vae"] = 0.15
 
     if not target_losses:
         log.error("targets.empty")

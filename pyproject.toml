@@ -107,6 +107,7 @@ include = [
     "src/",
     "include/",
     "Documentation/",
+    "LICENSES/",
     "COPYING",
     "CREDITS",
     "CHANGELOG",
