@@ -75,6 +75,8 @@ class LossWeights:
     lpips: float = 0.10
     total_variation: float = 0.01
     bilevel_lpips: float = 0.0
+    normalize_per_target: bool = False
+    normalization_ema_decay: float = 0.99
 
 
 @dataclass
@@ -192,6 +194,9 @@ class CompositeLoss:
         self._targets = dict(target_losses)
         self._static = dict(target_static_data or {})
         self._lpips = lpips
+        # EMA of |per_target_loss| for per-target normalization. Used
+        # only when weights.normalize_per_target is True.
+        self._loss_ema: dict[str, float] = {}
 
     def compute(
         self,
@@ -229,8 +234,19 @@ class CompositeLoss:
                 continue
             adv_out = target(adversarial_input)
             value = self._invoke(name, loss_fn, adv_out, target, clean)
+            reported = float(value.detach())
+            if self._weights.normalize_per_target:
+                magnitude = abs(reported)
+                decay = self._weights.normalization_ema_decay
+                prev = self._loss_ema.get(name, magnitude)
+                ema = decay * prev + (1.0 - decay) * magnitude
+                self._loss_ema[name] = ema
+                # Divide by the EMA (with a floor) so each term
+                # contributes at roughly unit scale before weighting.
+                divisor = max(ema, 1e-6)
+                value = value / divisor
             weighted_target_loss = weighted_target_loss + weight * value
-            per_target_scalars[name] = float(value.detach())
+            per_target_scalars[name] = reported
 
         lpips_value = adversarial.new_zeros(())
         if self._lpips is not None and self._weights.lpips > 0.0:
