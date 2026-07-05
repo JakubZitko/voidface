@@ -1,6 +1,57 @@
 Voidface changelog. Newest at the top. Time flows downward.
 
 
+Voidface 0.0.13 — 2026-07-05 — Phase R5.2: G training loop (system convergence)
+
+    The whole system converges end-to-end. train_generator() reuses
+    every subsystem R1-R4 built — CompositeLoss, EotSampler,
+    RestorerSampler, the ensemble targets — and updates the R5.1
+    generator's parameters. The synthetic-target training test
+    demonstrably reduces the total composite loss across 30 Adam
+    steps: this is the first Voidface commit where the shipped
+    generator is being trained against the exact same adversarial
+    objectives it will face at inference.
+
+    New:
+
+    * src/voidface/core/train.py — train_generator(...) plus
+      TrainConfig, TrainStep, TrainResult. Consumes a batch iterator
+      lazily so the same interface works for a real FFHQ loader, a
+      finite test iterator, or an infinite streaming pipeline.
+    * Update path: G.parameters() via Adam (lr=1e-4, weight_decay
+      =1e-6). Per-step history of composite loss + per-target
+      breakdown + sampled restorer name. Checkpoint dump on a
+      configurable interval — writes step number, state_dict, and
+      the generator's VoidfaceConfig so a checkpoint can round-trip
+      into a fresh Voidface().
+
+    Tests:
+
+    * tests/unit/test_train_generator.py — 3 tests:
+        - training loop runs over 30 batches AND the trailing-5-step
+          loss average is meaningfully lower than the leading-5-step
+          average (real convergence, not just execution),
+        - the loop exits cleanly when the batch iterator exhausts
+          before reaching config.steps,
+        - a checkpoint written during training loads back into a
+          fresh Voidface(config) instance.
+    * Suite is 63 tests, all passing.
+
+    What R5.2 explicitly does NOT ship (R5.3):
+
+    * Dataset pipeline (FFHQ / CelebA-HQ loaders, augmentation,
+      face-region cropping). train_generator() takes an
+      Iterable[Tensor] — any iterator works — so the loop is unblocked
+      on the actual dataset landing.
+    * Distributed training. Single-GPU baseline first.
+    * CLI subcommand `voidface train <config.toml>`. Direct-python
+      invocation via train_generator() works today; the CLI wrapper
+      is a wiring commit next.
+    * Real large-scale training runs. That happens against the
+      full 13-target ensemble on cloud GPUs; this session ships the
+      infrastructure that enables it, not the checkpoint itself.
+
+
 Voidface 0.0.12 — 2026-07-05 — Phase R5.1: generator G architecture
 
     The shipped model lands. Everything up to R4 has been building
