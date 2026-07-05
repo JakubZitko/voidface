@@ -1,7 +1,7 @@
 Voidface changelog. Newest at the top. Time flows downward.
 
 
-Voidface 0.1.1 through 0.1.11 — 2026-07-05 — Phase R7.36 through R7.44 polish
+Voidface 0.1.1 through 0.1.17 — 2026-07-05 — Phase R7.36 through R7.49 polish
 
     Continued after 0.1.0. Small-but-real additions:
 
@@ -14,8 +14,16 @@ Voidface 0.1.1 through 0.1.11 — 2026-07-05 — Phase R7.36 through R7.44 polis
     * R7.42 --quiet mode on protect.
     * R7.43 `voidface bench --targets detector,recognizer` subset.
     * R7.44 Documentation/process/release.md maintainer runbook.
+    * R7.45 CHANGELOG 0.1.1-0.1.11 entry.
+    * R7.46 voidface_cli/common.py shared helpers module (prep for
+      main.py split).
+    * R7.46-follow test coverage for common.py (8 new tests).
+    * R7.47 preset-validity test (init -> config-check contract).
+    * R7.48 Documentation/faq.md.
+    * R7.49 status.md test count refresh (147 -> 188).
 
-    Suite is 176 tests + 1 correctly-skipped Apple Silicon test.
+    Suite is 188 tests + 1 correctly-skipped Apple Silicon test.
+    Session commit total at 0.1.17: 105 commits since R0 scaffold.
 
 
 Voidface 0.1.0 — 2026-07-05 — First real semver
