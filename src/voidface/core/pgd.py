@@ -30,6 +30,7 @@ from voidface.util.log import get_logger
 if TYPE_CHECKING:
     from voidface.core.eot import EotSampler
     from voidface.core.loss import CompositeLoss, LossBreakdown
+    from voidface.models.restorers.sampler import RestorerSampler
 
 __all__ = ["PgdConfig", "PgdResult", "PgdStep", "run_pgd"]
 
@@ -69,6 +70,7 @@ class PgdStep:
     per_target: dict[str, float]
     lpips: float
     total_variation: float
+    restorer: str = "identity"
 
 
 @dataclass
@@ -85,6 +87,7 @@ def run_pgd(
     composite_loss: CompositeLoss,
     eot: EotSampler,
     config: PgdConfig,
+    restorer_sampler: RestorerSampler | None = None,
 ) -> PgdResult:
     """Run per-image PGD against the composite loss.
 
@@ -93,6 +96,11 @@ def run_pgd(
         composite_loss: Configured :class:`CompositeLoss` instance.
         eot: :class:`EotSampler` used to wrap the adversarial forward.
         config: :class:`PgdConfig` with the optimizer schedule.
+        restorer_sampler: Optional :class:`RestorerSampler`. When
+            provided, one restorer is drawn per PGD step and every
+            ensemble target sees ``restorer(adversarial)``. When
+            ``None`` the identity restorer is used every step (the
+            same behavior as R1 and R2).
 
     Returns:
         A :class:`PgdResult` containing the final perturbed image, the
@@ -120,7 +128,10 @@ def run_pgd(
     for step in range(config.steps):
         eot_batch = eot.apply(_clip_image(clean + delta))
         clean_repeat = clean.repeat(eot_batch.size(0) // clean.size(0), 1, 1, 1)
-        loss_value, breakdown = composite_loss.compute(clean_repeat, eot_batch, delta)
+        restorer = restorer_sampler.sample() if restorer_sampler is not None else None
+        loss_value, breakdown = composite_loss.compute(
+            clean_repeat, eot_batch, delta, restorer=restorer
+        )
 
         if delta.grad is not None:
             delta.grad.zero_()
@@ -146,6 +157,7 @@ def run_pgd(
                 per_target=dict(breakdown.per_target),
                 lpips=breakdown.lpips,
                 total_variation=breakdown.total_variation,
+                restorer=breakdown.restorer,
             )
         )
 
@@ -155,6 +167,7 @@ def run_pgd(
                 step=step + 1,
                 total=round(breakdown.total, 4),
                 lpips=round(breakdown.lpips, 4),
+                restorer=breakdown.restorer,
                 per_target={k: round(v, 4) for k, v in breakdown.per_target.items()},
             )
 

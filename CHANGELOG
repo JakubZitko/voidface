@@ -1,6 +1,82 @@
 Voidface changelog. Newest at the top. Time flows downward.
 
 
+Voidface 0.0.4 — 2026-07-05 — Phase R3: bilevel loop, SD-VAE restorer
+
+    The bilevel objective becomes real. A restorer is now sampled per
+    PGD step from a weighted distribution and every ensemble target
+    sees restorer(adversarial). The first real restorer target is the
+    Stable Diffusion 1.5 VAE round-trip, which strips high-frequency
+    information the encoder cannot preserve — a fair stand-in for
+    the DiffPure-family strip attacks that broke every prior
+    adversarial-cloaking tool.
+
+    New pieces:
+
+    * src/voidface/models/restorers/sd_vae.py — Sd15VaeRestorer.
+      Reuses the AutoencoderKL from the Sd15Vae encoder target
+      (shared weights, no duplicated download). Runs decode(encode(x))
+      and rescales back to the input resolution. Dynamic sizing (round
+      to stride 8, cap at 512) so low-memory devices do not OOM.
+    * src/voidface/models/restorers/sampler.py — RestorerSampler.
+      Weighted per-step sampling over a list of (Restorer, weight)
+      pairs; zero-weight entries dropped; empty and all-zero
+      configurations raise cleanly. Deterministic seed hook.
+    * src/voidface/models/vaes/sd15.py — Sd15Vae exposes
+      `underlying_vae` and `device` properties so the restorer can
+      share the loaded weights.
+
+    Core changes:
+
+    * src/voidface/core/pgd.py — run_pgd accepts an optional
+      restorer_sampler. When provided, one restorer is drawn per step
+      and forwarded to CompositeLoss.compute. Sampled restorer name is
+      recorded on every PgdStep for post-hoc analysis.
+    * PgdStep gains a `restorer` field defaulting to "identity" so R1
+      and R2 result records stay valid.
+
+    CLI:
+
+    * tools/cli/voidface_cli/main.py — new `--restorers` flag.
+      Accepts "name[:weight],..." with `identity` and `sd15-vae`
+      currently supported. `sd15-vae` auto-loads the VAE target if the
+      user forgot to enable it. Weight defaults to 1.0 per entry.
+      Example: `--restorers "identity:0.3,sd15-vae:0.7"`.
+
+    Tests:
+
+    * tests/unit/test_restorer_sampler.py — single-option always
+      samples; weight ratio respected under 2000 draws; zero-weight
+      entries dropped; empty and all-zero configurations raise;
+      probabilities map normalizes.
+    * tests/unit/test_pgd_with_restorer_sampler.py — run_pgd draws
+      both restorers across 20 steps when the sampler is balanced;
+      un-configured runs record "identity" throughout.
+    * Suite is 27 tests, all passing.
+
+    Verification (Intel Mac CPU, 256x256 synthetic input, 3 steps,
+    seed 0, restorers = identity:0.3, sd15-vae:0.7):
+
+    * Every PGD step routed through the SD-VAE round-trip restorer.
+    * Total loss 8.96 -> 7.66 (14% drop).
+    * VAE latent loss 32.55 -> 27.33 (16% drop through the restorer,
+      demonstrating the delta survives VAE compression).
+    * PSNR 33.04 dB (up from 27.85 dB in R1 — perceptibility gains
+      from LPIPS + TV plus the additional constraints from routing
+      through the restorer).
+
+    Known limits carried forward:
+
+    * The SD-VAE round-trip is not a face restorer. It is a
+      "diffusion purification" stand-in. Real face restorers (GFPGAN,
+      CodeFormer, Real-ESRGAN) still land in Phase R4.
+    * Detector and recognizer remain the Phase R1 stand-ins.
+    * Trained generator G is not yet built.
+    * CPU-only for the bilevel run on Intel Mac; MPS backend OOMs on
+      the VAE decode step. Higher-VRAM Apple Silicon devices should
+      run on MPS without changes.
+
+
 Voidface 0.0.3 — 2026-07-05 — Phase R2: restorer abstraction, VAE target, LPIPS
 
     The bilevel-loss infrastructure lands and the ensemble grows from

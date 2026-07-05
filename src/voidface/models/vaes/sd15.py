@@ -66,6 +66,22 @@ class Sd15Vae(nn.Module):
         for parameter in self._vae.parameters():
             parameter.requires_grad_(False)
 
+    @property
+    def underlying_vae(self):  # noqa: ANN201 -- returns the diffusers AutoencoderKL
+        """Expose the wrapped ``AutoencoderKL`` for shared use.
+
+        The restorer :class:`voidface.models.restorers.sd_vae.Sd15VaeRestorer`
+        reuses this reference so encode+decode round-trip can share
+        weights with the encoder-only target instead of loading a
+        second copy.
+        """
+        return self._vae
+
+    @property
+    def device(self) -> torch.device:
+        """Torch device this VAE lives on."""
+        return self._device
+
     def forward(self, image: Tensor) -> TargetOutputs:
         """Encode ``image`` to the SD 1.5 latent.
 

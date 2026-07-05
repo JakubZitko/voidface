@@ -95,6 +95,18 @@ def _build_parser() -> argparse.ArgumentParser:
         action="store_true",
         help="Skip the LPIPS perceptual constraint (faster, weaker imperceptibility).",
     )
+    p_protect.add_argument(
+        "--restorers",
+        type=str,
+        default="identity",
+        help=(
+            "Comma-separated restorer distribution for the bilevel loop. "
+            "Format: 'name[:weight],...'. Options: 'identity', 'sd15-vae'. "
+            "Default: 'identity' (no bilevel wrapping). Example: "
+            "'identity:0.3,sd15-vae:0.7' samples the SD 1.5 VAE round-trip "
+            "70%% of steps. 'sd15-vae' implicitly loads the VAE target too."
+        ),
+    )
 
     p_report = sub.add_parser(
         "report",
@@ -126,6 +138,7 @@ def _cmd_protect(args: argparse.Namespace) -> int:
     from voidface.models.detectors.mtcnn_pnet import MtcnnPnet
     from voidface.models.recognizers.facenet import Facenet
     from voidface.models.restorers.identity import IdentityRestorer
+    from voidface.models.restorers.sampler import RestorerSampler, SamplerConfig
     from voidface.util.image import load_image, save_image
     from voidface.util.log import configure_logging, get_logger
 
@@ -145,7 +158,19 @@ def _cmd_protect(args: argparse.Namespace) -> int:
         unknown = sorted(selected - allowed)
         log.error("targets.unknown", unknown=unknown, allowed=sorted(allowed))
         return 2
+
+    restorer_spec = _parse_restorer_spec(args.restorers)
+    if restorer_spec is None:
+        log.error("restorers.unknown", spec=args.restorers)
+        return 2
+    if "sd15-vae" in {name for name, _ in restorer_spec} and "vae" not in selected:
+        # The SD 1.5 VAE restorer needs the encoder loaded anyway.
+        # Auto-add the target so the user does not have to.
+        selected.add("vae")
+        log.info("targets.autoadd", added="vae", reason="sd15-vae restorer selected")
+
     log.info("targets.selected", targets=sorted(selected))
+    log.info("restorers.selected", spec=restorer_spec)
 
     target_losses = {}
     target_static_data = {}
@@ -163,6 +188,7 @@ def _cmd_protect(args: argparse.Namespace) -> int:
         target_losses["recognizer"] = (recognizer, arcface_identity_loss)
         weights_targets["recognizer"] = 0.40
 
+    vae = None
     if "vae" in selected:
         from voidface.models.vaes.sd15 import Sd15Vae
 
@@ -207,22 +233,33 @@ def _cmd_protect(args: argparse.Namespace) -> int:
         seed=args.seed,
     )
 
-    restorer = IdentityRestorer()
+    restorer_options = []
+    for name, weight in restorer_spec:
+        if name == "identity":
+            restorer_options.append((IdentityRestorer(), weight))
+        elif name == "sd15-vae":
+            from voidface.models.restorers.sd_vae import Sd15VaeRestorer
+
+            assert vae is not None, "sd15-vae restorer requires the VAE target."
+            restorer_options.append((Sd15VaeRestorer(encoder=vae), weight))
+
+    restorer_sampler = RestorerSampler(restorer_options, SamplerConfig(seed=args.seed))
     log.info(
         "pgd.start",
         epsilon=args.epsilon,
         steps=args.steps,
         targets=sorted(weights_targets),
         lpips=(lpips_weight > 0.0),
-        restorer=restorer.spec.name,
+        restorers=restorer_sampler.probabilities(),
     )
 
-    from functools import partial
-
-    original_compute = composite.compute
-    composite.compute = partial(original_compute, restorer=restorer)  # type: ignore[method-assign]
-
-    result = run_pgd(clean=clean, composite_loss=composite, eot=eot, config=pgd)
+    result = run_pgd(
+        clean=clean,
+        composite_loss=composite,
+        eot=eot,
+        config=pgd,
+        restorer_sampler=restorer_sampler,
+    )
     log.info("pgd.done", final=round(result.history[-1].total_loss, 4))
 
     output = args.output or args.image.with_suffix(".protected.png")
@@ -255,6 +292,36 @@ def _cmd_report(args: argparse.Namespace) -> int:
 
 
 # --- helpers -----------------------------------------------------------------
+
+
+_ALLOWED_RESTORERS = {"identity", "sd15-vae"}
+
+
+def _parse_restorer_spec(spec: str) -> list[tuple[str, float]] | None:
+    """Parse a ``--restorers`` argument into ``[(name, weight), ...]``.
+
+    Accepts ``"identity"``, ``"sd15-vae:0.7"``, or comma-separated
+    combinations. Returns ``None`` on any unknown name.
+    """
+    result: list[tuple[str, float]] = []
+    for token in spec.split(","):
+        token = token.strip()
+        if not token:
+            continue
+        if ":" in token:
+            name, weight_str = token.split(":", 1)
+            try:
+                weight = float(weight_str)
+            except ValueError:
+                return None
+        else:
+            name, weight = token, 1.0
+        if name not in _ALLOWED_RESTORERS:
+            return None
+        result.append((name, weight))
+    if not result:
+        return None
+    return result
 
 
 def _resolve_device(name: str) -> object:
