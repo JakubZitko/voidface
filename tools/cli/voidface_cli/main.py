@@ -211,6 +211,18 @@ def _build_parser() -> argparse.ArgumentParser:
             "first use for weight downloads."
         ),
     )
+    p_protect.add_argument(
+        "--output-json",
+        type=Path,
+        default=None,
+        metavar="PATH",
+        help=(
+            "Emit a JSON sidecar file with metadata about the protection: "
+            "voidface version, epsilon budget, flags used, PSNR/SSIM, "
+            "generator checkpoint hash (if --use-generator), and seed. "
+            "Users can audit later what protection was applied."
+        ),
+    )
 
     p_report = sub.add_parser(
         "report",
@@ -747,6 +759,9 @@ def _cmd_protect(args: argparse.Namespace) -> int:
     log.info("image.saved", path=str(output))
 
     _print_summary(clean=clean, adversarial=adversarial, output=output)
+    if args.output_json is not None:
+        _write_output_json(args, clean, adversarial, output)
+        log.info("output_json.written", path=str(args.output_json))
     return 0
 
 
@@ -881,6 +896,9 @@ def _protect_via_generator(args: argparse.Namespace, clean, log) -> int:  # noqa
     _print_summary(clean=clean, adversarial=adversarial, output=output)
     if getattr(args, "show_metrics", False):
         _print_attack_metrics(clean=clean, adversarial=adversarial, log=log)
+    if args.output_json is not None:
+        _write_output_json(args, clean, adversarial, output)
+        log.info("output_json.written", path=str(args.output_json))
     return 0
 
 
@@ -2096,6 +2114,44 @@ def _print_attack_metrics(clean, adversarial, log) -> None:  # noqa: ANN001
     print("--- attack metrics ---")
     print(f"detector face score (before -> after):  {det_before:.4f} -> {det_after:.4f}")
     print(f"ArcFace cosine (clean vs protected):    {cos:.4f}  (1=same, -1=opposite)")
+
+
+def _write_output_json(args, clean, adversarial, output_path: Path) -> None:  # noqa: ANN001
+    """Write an audit-trail sidecar next to the protected image."""
+    import json
+
+    import torch
+
+    from voidface.eval.perceptual import psnr, ssim
+    from voidface.util.checksum import compute_sha256
+
+    if not isinstance(clean, torch.Tensor) or not isinstance(adversarial, torch.Tensor):
+        return
+
+    metadata = {
+        "voidface_version": voidface.__version__,
+        "output": str(output_path),
+        "psnr_db": psnr(clean, adversarial),
+        "ssim": ssim(clean, adversarial),
+        "l_inf": (clean - adversarial).abs().max().item(),
+        "epsilon_int_over_255": args.epsilon,
+        "seed": args.seed,
+        "flags": {
+            "use_generator": str(args.use_generator) if args.use_generator else None,
+            "refine_steps": args.refine_steps,
+            "targets": args.targets,
+            "restorers": args.restorers,
+            "steps": args.steps,
+            "no_lpips": args.no_lpips,
+            "face_mask": args.face_mask,
+            "semantic_warp": args.semantic_warp,
+        },
+    }
+    if args.use_generator is not None and args.use_generator.exists():
+        metadata["generator_checkpoint_sha256"] = compute_sha256(args.use_generator)
+
+    args.output_json.parent.mkdir(parents=True, exist_ok=True)
+    args.output_json.write_text(json.dumps(metadata, indent=2))
 
 
 def _print_summary(clean: object, adversarial: object, output: Path) -> None:
