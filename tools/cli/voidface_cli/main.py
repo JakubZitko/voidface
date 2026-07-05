@@ -155,6 +155,17 @@ def _build_parser() -> argparse.ArgumentParser:
             "flags; --epsilon is still applied as the L-inf budget."
         ),
     )
+    p_protect.add_argument(
+        "--face-mask",
+        action="store_true",
+        help=(
+            "Restrict the perturbation to the detected face region via a "
+            "feathered mask (OpenCV Haar cascade). Cleaner backgrounds; no "
+            "adversarial noise on smooth walls / sky. Only meaningful with "
+            "--use-generator. Falls back to full-image perturbation when no "
+            "face is detected."
+        ),
+    )
 
     p_report = sub.add_parser(
         "report",
@@ -562,6 +573,7 @@ def _protect_batch(args: argparse.Namespace, device, log) -> int:  # noqa: ANN00
             clean=clean,
             output_path=output_path,
             epsilon_int=args.epsilon,
+            face_mask=args.face_mask,
         )
         log.info("batch.item.done", path=str(output_path))
     log.info("batch.done", count=len(paths))
@@ -596,6 +608,7 @@ def _run_generator_and_save(  # noqa: ANN001,ANN201
     clean,
     output_path: Path,
     epsilon_int: int,
+    face_mask: bool = False,
 ):
     import torch
     import torch.nn.functional as F
@@ -617,6 +630,15 @@ def _run_generator_and_save(  # noqa: ANN001,ANN201
     with torch.no_grad():
         adversarial = generator(clean_padded, epsilon=epsilon_int / 255.0)
     adversarial = adversarial[..., : original_hw[0], : original_hw[1]]
+
+    if face_mask:
+        from voidface.util.facemask import face_region_mask
+
+        mask = face_region_mask(clean.squeeze(0)).to(device=clean.device)
+        # Compose: masked delta only inside the face region.
+        delta = adversarial - clean
+        adversarial = (clean + delta * mask.unsqueeze(0)).clamp(0.0, 1.0)
+
     save_image(adversarial.squeeze(0), output_path)
     return adversarial
 
@@ -636,6 +658,7 @@ def _protect_via_generator(args: argparse.Namespace, clean, log) -> int:  # noqa
         clean=clean,
         output_path=output,
         epsilon_int=args.epsilon,
+        face_mask=args.face_mask,
     )
     log.info("image.saved", path=str(output))
     _print_summary(clean=clean, adversarial=adversarial, output=output)
