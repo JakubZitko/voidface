@@ -838,10 +838,15 @@ _WORKFLOW_HELP = """
 End-to-end workflow
 -------------------
 
-Train:      voidface train samples/configs/train_full.toml
-Validate:   voidface bench runs/step-050000.pt path/to/test/ --json bench.json --limit 200
-Export:     voidface export runs/step-050000.pt out/voidface.onnx \\
-                --quantize int8 --quantize-static-dir cal/ --coreml --ort
+Train:         voidface train samples/configs/train_full.toml
+Validate:      voidface bench runs/step-050000.pt path/to/test/ \\
+                   --json bench.json --limit 200
+Compare A/B:   voidface bench runs/step-050000.pt path/to/test/ \\
+                   --baseline previous.json
+Ship-bundle:   voidface package runs/step-050000.pt release-v1/ \\
+                   --calibration-dir cal/ --coreml
+Export à la    voidface export runs/step-050000.pt out/voidface.onnx \\
+    carte:         --quantize int8 --quantize-static-dir cal/ --coreml --ort
 
 Deploy one image (fast path):
     voidface protect user.jpg --use-generator runs/step-050000.pt --face-mask
@@ -856,11 +861,8 @@ Deploy a video:
     voidface protect-video clip.mp4 out.mp4 \\
         --use-generator runs/step-050000.pt --temporal-blend 0.7 --face-mask
 
-Inspect a checkpoint:
-    voidface info runs/step-050000.pt
-
-Validate a training config before starting:
-    voidface config-check samples/configs/train_full.toml
+Inspect a checkpoint:      voidface info runs/step-050000.pt
+Validate a config:         voidface config-check samples/configs/train_full.toml
 
 Documentation/status.md is the authoritative "what ships today" reference.
 """
