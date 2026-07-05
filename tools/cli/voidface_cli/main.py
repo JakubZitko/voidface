@@ -319,6 +319,17 @@ def _build_parser() -> argparse.ArgumentParser:
             "the metrics. Useful for visual A/B against the source images."
         ),
     )
+    p_bench.add_argument(
+        "--limit",
+        type=int,
+        default=0,
+        metavar="N",
+        help=(
+            "Cap the test set at N images. Useful for CI smoke checks on a "
+            "full FFHQ directory or for fast iteration during tuning. "
+            "0 (default) processes every image."
+        ),
+    )
 
     p_pv = sub.add_parser(
         "protect-video",
@@ -1053,10 +1064,14 @@ def _cmd_bench(args: argparse.Namespace) -> int:
     from voidface.data.datasets import collect_image_paths
 
     image_paths = collect_image_paths(args.images, recursive=False)
-    image_names = [str(p) for p in image_paths]
+    total = len(dataset)
+    limit = args.limit if args.limit > 0 else total
+    limit = min(limit, total)
+    log.info("bench.limit", limit=limit, total=total)
+    image_names = [str(p) for p in image_paths[:limit]]
     summary = run_bench(
         generator=generator,
-        images=(dataset[i] for i in range(len(dataset))),
+        images=(dataset[i] for i in range(limit)),
         detector=detector,
         recognizer=recognizer,
         config=BenchConfig(
