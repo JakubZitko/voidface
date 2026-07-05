@@ -23,6 +23,21 @@ Voidface 0.1.47 through 0.1.57 — 2026-07-05 — Phase R7.79 through R7.89
     Suite is 248 unit + 3 integration tests. Session commit
     total: 145.
 
+    Follow-ons after R7.89:
+
+    * R7.90 CHANGELOG entry for R7.79-R7.89.
+    * R7.91 src/voidface/py.typed marker for downstream mypy
+      consumers; resolve_device return type sharpened from
+      `object` to `torch.device`.
+    * R7.92 util.image.save_image now mkdir(parents=True) the
+      target directory before writing. Removes a paper-cut where
+      `voidface protect input.jpg -o out/protected.png` failed
+      with a raw PIL traceback on a nonexistent `out/`. Two
+      regression tests added.
+
+    Suite is 250 unit + 3 integration tests. Session commit
+    total: 148.
+
 
 Voidface 0.1.34 through 0.1.46 — 2026-07-05 — Phase R7.66 through R7.78
 
