@@ -238,6 +238,14 @@ def _build_parser() -> argparse.ArgumentParser:
             "protected image bit-exactly."
         ),
     )
+    p_protect.add_argument(
+        "--timing",
+        action="store_true",
+        help=(
+            "Print wall-clock per phase: image load, generator forward, "
+            "PGD steps if any, save. Useful for profiling."
+        ),
+    )
 
     p_report = sub.add_parser(
         "report",
@@ -945,8 +953,13 @@ def _protect_via_generator(args: argparse.Namespace, clean, log) -> int:  # noqa
     reconstructs the :class:`Voidface` with its saved config, and produces
     the protected image in a single forward pass.
     """
+    import time as _time
+
+    t_load_start = _time.perf_counter()
     generator, config = _load_generator_checkpoint(args.use_generator, clean.device, log)
+    t_load = _time.perf_counter() - t_load_start
     output = args.output or args.image.with_suffix(".protected.png")
+    t_run_start = _time.perf_counter()
     adversarial = _run_generator_and_save(
         generator=generator,
         config=config,
@@ -955,6 +968,7 @@ def _protect_via_generator(args: argparse.Namespace, clean, log) -> int:  # noqa
         epsilon_int=args.epsilon,
         face_mask=args.face_mask,
     )
+    t_run = _time.perf_counter() - t_run_start
     log.info("image.saved", path=str(output))
     _print_summary(clean=clean, adversarial=adversarial, output=output)
     if getattr(args, "show_metrics", False):
@@ -968,6 +982,10 @@ def _protect_via_generator(args: argparse.Namespace, clean, log) -> int:  # noqa
         args.emit_delta.parent.mkdir(parents=True, exist_ok=True)
         _torch.save(adversarial - clean, args.emit_delta)
         log.info("delta.written", path=str(args.emit_delta))
+    if args.timing:
+        print("--- timing ---")
+        print(f"  checkpoint load:  {t_load * 1000:.1f} ms")
+        print(f"  forward + save:   {t_run * 1000:.1f} ms")
     return 0
 
 
