@@ -309,6 +309,16 @@ def _build_parser() -> argparse.ArgumentParser:
             "mean_identity_cosine_plus_one, mean_psnr_db, mean_ssim, per_image."
         ),
     )
+    p_bench.add_argument(
+        "--out-dir",
+        type=Path,
+        default=None,
+        metavar="DIR",
+        help=(
+            "Save the protected version of each test image to DIR alongside "
+            "the metrics. Useful for visual A/B against the source images."
+        ),
+    )
 
     p_pv = sub.add_parser(
         "protect-video",
@@ -1040,6 +1050,10 @@ def _cmd_bench(args: argparse.Namespace) -> int:
     log.info("model.recognizer.loading", name="arcface-r100")
     recognizer = Arcface(device=device)
 
+    from voidface.data.datasets import collect_image_paths
+
+    image_paths = collect_image_paths(args.images, recursive=False)
+    image_names = [str(p) for p in image_paths]
     summary = run_bench(
         generator=generator,
         images=(dataset[i] for i in range(len(dataset))),
@@ -1049,6 +1063,8 @@ def _cmd_bench(args: argparse.Namespace) -> int:
             device=str(device),
             detection_threshold=args.detection_threshold,
         ),
+        output_dir=args.out_dir,
+        image_names=image_names,
     )
 
     print("--- bench summary ---")

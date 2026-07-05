@@ -103,6 +103,8 @@ def run_bench(
     detector: EnsembleTarget,
     recognizer: EnsembleTarget,
     config: BenchConfig = BenchConfig(),
+    output_dir: object | None = None,
+    image_names: Iterable[str] | None = None,
 ) -> BenchSummary:
     """Run the bench harness against ``images``.
 
@@ -123,6 +125,12 @@ def run_bench(
     generator = generator.to(device).eval()
     summary = BenchSummary()
 
+    from pathlib import Path
+
+    if output_dir is not None:
+        Path(output_dir).mkdir(parents=True, exist_ok=True)
+    names_iter = iter(image_names) if image_names is not None else None
+
     with torch.no_grad():
         for index, image in enumerate(images):
             if image.dim() == 3:
@@ -141,9 +149,19 @@ def run_bench(
             assert clean_id is not None and adv_id is not None
             cos_plus_one = (F.cosine_similarity(clean_id, adv_id, dim=-1) + 1.0).mean().item()
 
+            item_name = next(names_iter, None) if names_iter is not None else None
+            path_label = item_name or f"image_{index:06d}"
+
+            if output_dir is not None:
+                from voidface.util.image import save_image
+
+                stem = Path(path_label).stem or f"image_{index:06d}"
+                out_path = Path(output_dir) / f"{stem}.protected.png"
+                save_image(protected.squeeze(0), out_path)
+
             summary.per_image.append(
                 BenchImageResult(
-                    path=f"image_{index:06d}",
+                    path=path_label,
                     detection_before=det_before,
                     detection_after=det_after,
                     identity_cosine_plus_one=cos_plus_one,
