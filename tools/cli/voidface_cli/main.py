@@ -161,6 +161,14 @@ def _build_parser() -> argparse.ArgumentParser:
             "Silicon macOS with coremltools installed."
         ),
     )
+    p_export.add_argument(
+        "--ort",
+        action="store_true",
+        help=(
+            "Also emit a .ort file (ONNX Runtime Web format) in the output "
+            "directory. Used by the browser demo for faster startup."
+        ),
+    )
 
     return parser
 
@@ -446,6 +454,17 @@ def _cmd_export(args: argparse.Namespace) -> int:
             log.error("coreml.export_failed", error=str(exc))
             return 3
         log.info("coreml.done", path=str(coreml_path))
+
+    if args.ort:
+        from voidface.export.ort import OrtConversionError, convert_onnx_to_ort
+
+        log.info("ort.converting", input=str(args.output))
+        try:
+            ort_path = convert_onnx_to_ort(args.output, output_dir=args.output.parent)
+        except OrtConversionError as exc:
+            log.error("ort.convert_failed", error=str(exc))
+            return 4
+        log.info("ort.done", path=str(ort_path))
 
     return 0
 
