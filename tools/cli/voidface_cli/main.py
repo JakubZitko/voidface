@@ -1034,6 +1034,12 @@ def _cmd_report(args: argparse.Namespace) -> int:
 # --- helpers -----------------------------------------------------------------
 
 
+# Note: shared helpers duplicated below also live in
+# voidface_cli.common — the future extracted subcommand modules
+# should import from there. main.py's local copies remain for
+# minimum-diff-during-refactor reasons; a follow-up commit
+# collapses them.
+
 _ALLOWED_RESTORERS = {"identity", "sd15-vae", "gfpgan"}
 
 
