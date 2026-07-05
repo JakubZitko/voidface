@@ -1,0 +1,21 @@
+Voidface iOS app — scaffold placeholder.
+
+The iOS app runs the trained generator on the Apple Neural Engine
+via the CoreML .mlpackage produced by `voidface export --coreml`.
+Files never leave the device. The killer feature is a share-sheet
+extension that intercepts photos on their way to Instagram / TikTok /
+Messages and hands back the protected version.
+
+This directory is intentionally empty until 0.3.0. See
+`../../Documentation/deployment/ios.md` for the intended shape:
+
+  * SwiftUI shell (App/)
+  * VoidfaceRunner.swift wrapping MLModel
+  * ProtectView / BatchView / VideoView
+  * ShareExtension target
+  * Voidface.mlpackage bundled in the app
+
+0.3.0 gates on:
+  * 0.1.0 core (shipped).
+  * 0.2.0 trained checkpoint (R5.5).
+  * Apple Developer account for signing.

@@ -10,5 +10,11 @@ The UI is drag-and-drop image or video, one Protect button, and a
 side-by-side before/after preview with PSNR / SSIM / LPIPS readouts.
 No accounts, no telemetry, all local.
 
-This directory is intentionally empty until Phase R5. See
-`../../Documentation/architecture.md`.
+This directory is intentionally empty until 0.2.0. See
+`../../Documentation/deployment/desktop.md` for the intended shape
+and `../../Documentation/architecture.md` for the top-level layout.
+
+0.2.0 gates on:
+  * 0.1.0 core (shipped).
+  * A trained checkpoint from R5.5.
+  * Apple Developer ID + Windows code-signing cert.
