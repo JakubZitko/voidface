@@ -61,6 +61,13 @@ soft face-region mask.
 - **Face mask (R6.10, R7.21).** Deploy-time only. Multiplies the
   learned delta by a soft face-region mask so smooth backgrounds
   (walls, sky) don't show adversarial noise.
+- **Iris budget boost (R7.74-R7.77).** Optimization-time. The iris
+  region gets a locally higher L∞ ceiling (default `2.0 * epsilon`)
+  via a per-pixel epsilon map passed to run_pgd. Face recognizers
+  assign heavy weight to iris texture; humans do not perceive
+  sub-millimeter iris changes at ordinary viewing distance. Enabled
+  by `voidface protect --iris-boost`; requires the detector target
+  so the aligner's 5-point landmarks are available.
 
 ## Combinations to know
 
@@ -75,7 +82,7 @@ soft face-region mask.
 - **Research-quality attack.** Everything on:
   `voidface protect img.jpg --steps 300 --restorers
   identity:0.1,sd15-vae:0.3,gfpgan:0.6 --semantic-warp 2.0
-  --face-mask`.
+  --face-mask --iris-boost`.
 - **Video with temporal coherence.** `voidface protect-video
   clip.mp4 out.mp4 --use-generator ckpt.pt --temporal-blend 0.7
   --face-mask`. Farnebäck flow warps the previous frame's delta
@@ -105,6 +112,7 @@ soft face-region mask.
 - EOT: `src/voidface/core/eot.py`, `src/voidface/core/jpeg.py`
 - Bilevel LPIPS: `src/voidface/core/loss.py::CompositeLoss.compute`
 - Face mask: `src/voidface/util/facemask.py`
+- Iris mask: `src/voidface/attacks/iris.py`
 - Video temporal blend: `src/voidface/util/flow.py`
 
 Each has its own subsystem doc; this file is the map that connects
