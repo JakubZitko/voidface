@@ -3,11 +3,17 @@
 #
 # Voidface command-line entry point.
 #
-# Phase R2 expands the ensemble to (detector + identity + VAE) with
-# LPIPS perceptual constraint and identity-restorer wrapping via the
-# bilevel loss shape. Video, full 13-target ensemble, and the trained
-# generator G land in later phases; this file grows subcommands as
-# they do.
+# This file owns three things and nothing else:
+#
+#   1. `_build_parser()` — argparse wiring for every subcommand.
+#   2. Four-line `_cmd_<name>` delegators that hand off to
+#      voidface_cli.commands.<name>::run.
+#   3. `main()` — parses argv, looks the command up in a local
+#      dispatch dict, and returns the handler's exit code.
+#
+# Real work lives in voidface_cli/commands/*.py. Shared helpers
+# live in voidface_cli/common.py. See
+# Documentation/process/contributing.md for the recipe.
 
 """Voidface CLI entry point."""
 
