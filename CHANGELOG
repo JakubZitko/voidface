@@ -1,6 +1,91 @@
 Voidface changelog. Newest at the top. Time flows downward.
 
 
+Voidface 0.0.17 through 0.0.43 — 2026-07-05 — Phase R4.5.2c through R6.11 (rapid session)
+
+    Twenty-seven consecutive releases in one session. Each shipped a
+    focused, tested increment. Grouped here by area:
+
+    Bilevel infrastructure (R4.5.2c-1, R4.5.2c-2):
+      * LossWeights.bilevel_lpips weight — LPIPS(restorer(clean),
+        restorer(adversarial)) subtracted from the composite loss to
+        MAXIMIZE it, so a delta that survives restoration is
+        rewarded. Skipped for identity restorers.
+      * util/checksum.py — verify_sha256(path, expected). Gate on
+        GFPGAN weight download. Loud warning when expected=None
+        (bring-up mode).
+
+    Deploy (R5.4a through R5.4d-follow-2):
+      * export/onnx.py — dynamic axes ONNX export, opset 17, verified
+        parity with PyTorch.
+      * export/quantize.py — quantize_onnx_generator (dynamic) and
+        quantize_onnx_generator_static (calibrated, ~parity-preserving
+        with a real corpus).
+      * export/coreml.py — CoreMlExportError-gated Apple Silicon
+        path. mlprogram, flexible input dims, 8-bit weight quant.
+      * export/ort.py — .ort conversion for the browser demo via
+        onnxruntime.tools subprocess.
+
+    CLI (R5.3b through R6.9):
+      * voidface train <config.toml> — full training run.
+      * voidface bench <ckpt> <images/> --json — release gate metrics.
+      * voidface export <ckpt> <out.onnx> --quantize int8
+        --quantize-static-dir <cal/> --coreml --ort — all deploy
+        artifacts in one call.
+      * voidface protect --use-generator <ckpt.pt> — deploy fast path,
+        single G forward, ~500ms per image.
+      * voidface protect <dir> --output-dir <out/> --use-generator —
+        batch mode, generator loaded once.
+      * voidface protect-video <in.mp4> <out.mp4> --temporal-blend 0.7
+        — per-frame G with Farnebäck-flow-warped delta continuity.
+      * voidface info <ckpt.pt> [--json] — checkpoint metadata inspector.
+      * --face-mask on protect: OpenCV Haar face detection restricts
+        the perturbation to the face region so backgrounds stay clean.
+
+    Data + generator (R5.1 through R5.3c):
+      * generator/architecture.py — Voidface(nn.Module),
+        ~5.35M params, tanh-projected delta clamped to [-eps, +eps].
+      * core/train.py — train_generator() Adam loop that converges the
+        composite loss and writes (state_dict, VoidfaceConfig)
+        checkpoints.
+      * data/datasets.py — FolderImageDataset walks a directory,
+        antialias-resize, random flip.
+      * data/align.py — differentiable 5-point similarity transform
+        (used by GfpganRestorer).
+      * CLI train — real RestorerSampler wiring (sd15-vae + gfpgan
+        mixes from TOML, not identity-only).
+
+    Docs (R6.0, R6.5, R5.7c refactor, R6.8 style pass):
+      * Documentation/status.md — the "what ships today" snapshot.
+      * Documentation/training/tuning.md — operational playbook: loss
+        weights, EOT, restorer mix, LR schedule, common failure
+        modes, R5.5 ship-vs-don't-ship gate.
+      * ruff config tuned: standard PyTorch idioms (N812 F,
+        PLR0913 args) and vendored files exempt.
+
+    Tests + CI (R6.4, R6.7c, R6.11):
+      * tests/integration/ — full-pipeline CLI walks for export +
+        protect --use-generator, and protect-video (both temporal
+        modes).
+      * .github/workflows/ci.yml — refresh: three separate jobs
+        (license, lint, test-matrix). --extra dev + train + export
+        installed. -m "not slow" filter.
+
+    Video (R6.7a, R6.7b):
+      * util/video.py — OpenCV-based iter_frames + write_video.
+      * util/flow.py — farneback_flow + warp_forward for the temporal
+        blend option on protect-video.
+
+    Polish (R6.2, R6.6):
+      * util/image.py — silenced numpy-not-writable warning.
+      * generator/architecture.py — skip shape validation during
+        tracing so ONNX export produces a clean graph.
+
+    Session tally: 43 commits on main, 117 unit + integration tests
+    passing, 1 correctly-skipped Apple Silicon test. The whole
+    train-bench-export-deploy pipeline lands.
+
+
 Voidface 0.0.16 — 2026-07-05 — Phase R5.4a: ONNX export for the shipped generator
 
     The generator can now be exported to a portable format. ONNX
