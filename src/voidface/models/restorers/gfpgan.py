@@ -39,7 +39,18 @@ from voidface.models.restorers.base import RestorerSpec
 if TYPE_CHECKING:
     from voidface.models.detectors.retinaface import RetinaFace
 
-__all__ = ["GfpganRestorer"]
+__all__ = ["GfpganRestorer", "pick_top_landmarks"]
+
+
+def pick_top_landmarks(outputs, image: Tensor, threshold: float = 0.5) -> Tensor | None:
+    """Public wrapper for the internal top-anchor landmark decoder.
+
+    Exposed so callers outside the GFPGAN restorer path (e.g. the
+    iris mask CLI wiring in `voidface protect --iris-boost`) can
+    convert a RetinaFace forward pass into 5-point landmarks in the
+    input image's pixel coordinate frame.
+    """
+    return _pick_top_landmarks(outputs, image, threshold)
 
 _OUT_SIZE = 512
 _MODEL_ID = "TencentARC/GFPGANv1"

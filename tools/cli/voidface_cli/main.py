@@ -183,6 +183,30 @@ def _build_parser() -> argparse.ArgumentParser:
         ),
     )
     p_protect.add_argument(
+        "--iris-boost",
+        action="store_true",
+        default=False,
+        help=(
+            "Grant the iris region a higher local L-infinity budget "
+            "(default 2.0x epsilon). The iris is high-signal for face "
+            "recognizers but low-perceptibility to humans at ordinary "
+            "viewing distance, so pixel budget spent there costs the "
+            "attacker less. Requires the detector target to be loaded "
+            "(automatic when 'detector' is in --targets)."
+        ),
+    )
+    p_protect.add_argument(
+        "--iris-ratio",
+        type=float,
+        default=2.0,
+        metavar="R",
+        help=(
+            "L-infinity budget multiplier inside the iris mask when "
+            "--iris-boost is set (default 2.0). See Documentation/"
+            "attacks/iris.md for the design rationale."
+        ),
+    )
+    p_protect.add_argument(
         "--refine-steps",
         type=int,
         default=0,

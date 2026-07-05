@@ -408,6 +408,37 @@ def run(args: argparse.Namespace) -> int:  # noqa: PLR0911
         restorers=restorer_sampler.probabilities(),
     )
 
+    iris_mask = None
+    if getattr(args, "iris_boost", False):
+        detector_pair = target_losses.get("detector")
+        if detector_pair is None:
+            log.error(
+                "iris_boost.needs_detector",
+                hint="--iris-boost requires 'detector' in --targets",
+            )
+            return 2
+        iris_detector = detector_pair[0]
+        from voidface.attacks.iris import iris_region_mask  # noqa: PLC0415
+        from voidface.models.restorers.gfpgan import pick_top_landmarks  # noqa: PLC0415
+
+        with torch.no_grad():
+            det_out = iris_detector(clean)
+            landmarks = pick_top_landmarks(det_out, clean, threshold=0.5)
+        if landmarks is None:
+            log.warn(
+                "iris_boost.no_face",
+                hint="detector found no face above threshold; iris boost skipped",
+            )
+        else:
+            iris_mask = iris_region_mask(
+                landmarks, height=clean.shape[-2], width=clean.shape[-1]
+            )
+            log.info(
+                "iris_boost.applied",
+                ratio=args.iris_ratio,
+                mask_coverage=float(iris_mask.mean().item()),
+            )
+
     result = run_pgd(
         clean=clean,
         composite_loss=composite,
@@ -415,6 +446,8 @@ def run(args: argparse.Namespace) -> int:  # noqa: PLR0911
         config=pgd,
         restorer_sampler=restorer_sampler,
         semantic_warp_max_pixels=args.semantic_warp,
+        iris_mask=iris_mask,
+        iris_epsilon_ratio=args.iris_ratio,
     )
     log.info("pgd.done", final=round(result.history[-1].total_loss, 4))
 
