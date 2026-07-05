@@ -1,6 +1,55 @@
 Voidface changelog. Newest at the top. Time flows downward.
 
 
+Voidface 0.1.0 — 2026-07-05 — First real semver
+
+    R7.34 marks the end of the 0.0.x build session with a real
+    release version.
+
+    Everything through R7.33 lands. What ships:
+
+    * Full CLI surface: init, protect, protect-video, train, bench,
+      export, package, info, config-check, report (9 subcommands).
+    * Ensemble: real ArcFace, real RetinaFace-R50, SD 1.5 VAE, SDXL
+      VAE, OpenCLIP-B/32.
+    * Restorers: identity, SD-VAE-round-trip, GFPGAN v1.4 in the
+      bilevel loop.
+    * Attacks: pixel PGD (MI-FGSM), semantic geometric warp,
+      composed via --semantic-warp; face-region mask via --face-mask.
+    * EOT: resize + Gaussian blur + differentiable JPEG (Reich et
+      al 2024) with the standard luma/chroma quantization tables.
+    * Loss: composite ensemble + LPIPS + bilevel LPIPS + TV +
+      optional per-target EMA normalization.
+    * Generator: ~5.35 M-parameter U-Net delta predictor with
+      GroupNorm + GELU. Trains via train_generator against the
+      composite loss.
+    * Video: per-frame G with Farnebäck-optical-flow temporal
+      blending, --face-mask, --temporal-blend, --codec.
+    * Deploy paths: fp32 ONNX + int8 dynamic + int8 static + CoreML
+      + ORT-Web + `voidface package` release bundler with SHA-256
+      CHECKSUMS + MANIFEST.
+    * Quality dial: --use-generator (fast) | --refine-steps N
+      (hybrid) | pure PGD --steps N (best).
+    * Session tally: 88 commits from R0 scaffold to 0.1.0. 172 unit
+      + integration tests passing, 1 correctly-skipped Apple
+      Silicon test.
+
+    What still doesn't ship in 0.1.0:
+
+    * A trained checkpoint. All infrastructure exists; the real
+      cloud-GPU training run (R5.5) produces the checkpoint 0.2.0
+      distributes.
+    * Tauri desktop app, iOS wrapper.
+    * MPS gradient checkpointing for GFPGAN (Apple-Silicon specific).
+    * MagFace + AdaFace + SCRFD + YuNet + MTCNN + Flux VAE + SigLIP
+      + DINOv2 (ensemble growth planned; the four families that
+      matter most for R5.5 all ship).
+
+    See Documentation/status.md for the canonical "what ships today"
+    reference and Documentation/attacks/composed.md for how the
+    attack layers compose.
+
+
 Voidface 0.0.44 through 0.0.64 — 2026-07-05 — Phase R6.12 through R7.14
 
     Second half of the same session, twenty-one further commits.
