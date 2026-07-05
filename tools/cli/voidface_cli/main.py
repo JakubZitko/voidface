@@ -209,6 +209,17 @@ def _build_parser() -> argparse.ArgumentParser:
         default=256,
         help="Side length in pixels each test image is resized to (default 256).",
     )
+    p_bench.add_argument(
+        "--json",
+        type=Path,
+        default=None,
+        metavar="PATH",
+        help=(
+            "Write a machine-readable JSON summary to PATH alongside the "
+            "human-readable print. Fields: count, detection_asr, "
+            "mean_identity_cosine_plus_one, mean_psnr_db, mean_ssim, per_image."
+        ),
+    )
 
     return parser
 
@@ -543,6 +554,34 @@ def _cmd_bench(args: argparse.Namespace) -> int:
     print(f"identity cos+1:  {summary.mean_identity_cosine_plus_one:.4f}  (0=success, 2=failure)")
     print(f"PSNR (mean):     {summary.mean_psnr_db:.2f} dB")
     print(f"SSIM (mean):     {summary.mean_ssim:.4f}")
+
+    if args.json is not None:
+        import json
+
+        payload = {
+            "count": summary.count,
+            "detection_asr": summary.detection_asr(args.detection_threshold),
+            "detection_threshold": args.detection_threshold,
+            "mean_identity_cosine_plus_one": summary.mean_identity_cosine_plus_one,
+            "mean_psnr_db": summary.mean_psnr_db,
+            "mean_ssim": summary.mean_ssim,
+            "per_image": [
+                {
+                    "path": item.path,
+                    "detection_before": item.detection_before,
+                    "detection_after": item.detection_after,
+                    "identity_cosine_plus_one": item.identity_cosine_plus_one,
+                    "psnr_db": item.psnr_db,
+                    "ssim": item.ssim,
+                    "wall_ms": item.wall_ms,
+                }
+                for item in summary.per_image
+            ],
+        }
+        args.json.parent.mkdir(parents=True, exist_ok=True)
+        args.json.write_text(json.dumps(payload, indent=2))
+        log.info("bench.json.written", path=str(args.json))
+
     return 0
 
 
