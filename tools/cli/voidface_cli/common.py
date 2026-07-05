@@ -16,6 +16,8 @@ from typing import TYPE_CHECKING
 if TYPE_CHECKING:
     from pathlib import Path
 
+    import torch
+
     from voidface.generator.architecture import Voidface, VoidfaceConfig
 
 __all__ = [
@@ -31,7 +33,7 @@ ALLOWED_RESTORERS = frozenset({"identity", "sd15-vae", "gfpgan"})
 ALLOWED_TARGETS = frozenset({"detector", "recognizer", "vae", "sdxl-vae", "openclip"})
 
 
-def resolve_device(name: str) -> object:
+def resolve_device(name: str) -> torch.device:
     """Resolve a device name to a torch.device.
 
     Args:
@@ -41,7 +43,7 @@ def resolve_device(name: str) -> object:
         A ``torch.device``. 'auto' picks CUDA if available, then MPS
         if available on Apple Silicon, then CPU.
     """
-    import torch
+    import torch  # noqa: PLC0415
 
     if name == "auto":
         if torch.cuda.is_available():
