@@ -1,6 +1,39 @@
 Voidface changelog. Newest at the top. Time flows downward.
 
 
+Voidface 0.1.18 through 0.1.33 — 2026-07-05 — Phase R7.50 through R7.65
+
+    Second wave of same-session polish and CLI refactor.
+
+    * R7.50 CHANGELOG entry refresh covering R7.36-R7.49.
+    * R7.51 .github/ISSUE_TEMPLATE/{bug,feature,security}.md.
+    * R7.52 Documentation/glossary.md — 16 technical terms.
+    * R7.53 voidface bench --strict ship-gate mode + 3 tests
+      locking the defaults to Documentation/process/release.md.
+    * R7.54 extracted _cmd_info to commands/info.py.
+    * R7.55 extracted _cmd_config_check to commands/config_check.py;
+      hoisted ALLOWED_TARGETS/ALLOWED_RESTORERS into common.py.
+    * R7.56 extracted _cmd_verify to commands/verify.py.
+    * R7.57 extracted _cmd_init to commands/init.py.
+    * R7.58 extracted _cmd_report to commands/report.py.
+    * R7.59 extracted _cmd_package to commands/package.py.
+    * R7.60 extracted _cmd_export to commands/export.py.
+    * R7.61 extracted _cmd_protect_video to commands/protect_video.py.
+    * R7.62 extracted _cmd_bench to commands/bench.py.
+    * R7.63 extracted _cmd_train to commands/train.py.
+    * R7.64 status.md documents the new commands/ layout.
+    * R7.65 extracted _cmd_protect (largest handler ~414 lines
+      including private helpers) to commands/protect.py.
+
+    main.py: 2333 -> 759 lines (-67%) across R7.54-R7.65. 11
+    subcommand handler modules live under
+    tools/cli/voidface_cli/commands/. Shared helpers in
+    voidface_cli/common.py.
+
+    Suite is 191 unit + 3 integration tests + 1 correctly-skipped
+    Apple Silicon test. Session commit total: 121.
+
+
 Voidface 0.1.1 through 0.1.17 — 2026-07-05 — Phase R7.36 through R7.49 polish
 
     Continued after 0.1.0. Small-but-real additions:
