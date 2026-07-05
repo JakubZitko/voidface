@@ -1,6 +1,29 @@
 Voidface changelog. Newest at the top. Time flows downward.
 
 
+Voidface 0.1.47 through 0.1.57 — 2026-07-05 — Phase R7.79 through R7.89
+
+    Fourth wave: friendly-error sweep + auxiliary tests.
+
+    * R7.79 CHANGELOG entry for R7.66-R7.78.
+    * R7.80 voidface.attacks public API lock (4 tests).
+    * R7.81 pick_top_landmarks direct coverage (6 tests).
+    * R7.82 CHANGELOG entry for R7.79-R7.81; hits 0.1.50 minor.
+    * R7.83 _print_summary direct coverage (3 tests).
+    * R7.84 voidface protect --dump-iris-mask diagnostic (2 tests).
+    * R7.85 main.py header comment reflects the extracted layout.
+    * R7.86 voidface protect: friendly error on missing image.
+    * R7.87 voidface protect: friendly error on missing generator
+      checkpoint.
+    * R7.88 friendly errors across train/export/bench/package/
+      protect-video for missing checkpoints/configs/videos
+      (7 tests).
+    * R7.89 voidface report: friendly error on missing images.
+
+    Suite is 248 unit + 3 integration tests. Session commit
+    total: 145.
+
+
 Voidface 0.1.34 through 0.1.46 — 2026-07-05 — Phase R7.66 through R7.78
 
     Third wave: iris attack end-to-end + CLI dispatch cleanup.
