@@ -19,11 +19,16 @@ if TYPE_CHECKING:
     from voidface.generator.architecture import Voidface, VoidfaceConfig
 
 __all__ = [
+    "ALLOWED_RESTORERS",
+    "ALLOWED_TARGETS",
     "load_generator_checkpoint",
     "renormalize_weights",
     "resolve_device",
     "run_generator_and_save",
 ]
+
+ALLOWED_RESTORERS = frozenset({"identity", "sd15-vae", "gfpgan"})
+ALLOWED_TARGETS = frozenset({"detector", "recognizer", "vae", "sdxl-vae", "openclip"})
 
 
 def resolve_device(name: str) -> object:
