@@ -146,6 +146,21 @@ Voidface 0.1.47 through 0.1.57 — 2026-07-05 — Phase R7.79 through R7.89
 
     Session commit total: 181. Suite: 273 unit + 3 integration.
 
+    R7.127-R7.130 — usability + build integration:
+
+    * R7.127 voidface protect emits a warn log when --iris-boost is
+      set on the pure --use-generator fast path (no PGD loop to
+      attach to). Points at --refine-steps N as the composition
+      path.
+    * R7.128 composed.md documents the iris + generator interaction
+      alongside the existing semantic-warp rule.
+    * R7.129 session checkpoint at 184 commits.
+    * R7.130 make lint now runs mypy on tools/cli/voidface_cli
+      too, not just src/voidface. Prevents drift from CLI
+      mypy-clean state.
+
+    Session commit total: 186. Suite: 273 unit + 3 integration.
+
 
 Voidface 0.1.34 through 0.1.46 — 2026-07-05 — Phase R7.66 through R7.78
 
