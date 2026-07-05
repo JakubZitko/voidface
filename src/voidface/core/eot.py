@@ -45,7 +45,7 @@ class EotConfig:
     _rng: random.Random = field(init=False, repr=False, compare=False)
 
     def __post_init__(self) -> None:
-        rng = random.Random(self.seed)  # noqa: S311 -- not security-sensitive
+        rng = random.Random(self.seed)
         object.__setattr__(self, "_rng", rng)
 
 

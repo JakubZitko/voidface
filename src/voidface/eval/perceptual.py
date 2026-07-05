@@ -88,7 +88,7 @@ def ssim(clean: Tensor, other: Tensor, window_size: int = 11) -> float:
     return (numerator / denominator).mean().item()
 
 
-def load_lpips(net: str = "alex", device: torch.device | str = "cpu"):  # noqa: ANN201
+def load_lpips(net: str = "alex", device: torch.device | str = "cpu"):
     """Load the LPIPS network as a callable ``(clean, adv) -> Tensor``.
 
     Returns:

@@ -29,7 +29,7 @@ from voidface.util.log import get_logger
 
 if TYPE_CHECKING:
     from voidface.core.eot import EotSampler
-    from voidface.core.loss import CompositeLoss, LossBreakdown
+    from voidface.core.loss import CompositeLoss
     from voidface.models.restorers.sampler import RestorerSampler
 
 __all__ = ["PgdConfig", "PgdResult", "PgdStep", "run_pgd"]

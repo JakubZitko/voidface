@@ -26,14 +26,9 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import TYPE_CHECKING
 
 import torch
-import torch.nn.functional as F
 from torch import Tensor, nn
-
-if TYPE_CHECKING:
-    pass
 
 __all__ = ["Voidface", "VoidfaceConfig"]
 

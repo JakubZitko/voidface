@@ -164,7 +164,7 @@ def run_bench(
     return summary
 
 
-def _detection_face_score(outputs) -> float:  # noqa: ANN001
+def _detection_face_score(outputs) -> float:
     """Extract a single face-present scalar from a detector's outputs.
 
     Uses the max face-present softmax probability over all anchors,

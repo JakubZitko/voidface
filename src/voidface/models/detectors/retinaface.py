@@ -113,7 +113,7 @@ class RetinaFace(nn.Module):
         return super().__call__(image)  # type: ignore[no-any-return]
 
 
-def _load_retinaface_r50_with_weights(model_id: str, device: torch.device):  # noqa: ANN202
+def _load_retinaface_r50_with_weights(model_id: str, device: torch.device):
     """Download RetinaFace-R50 weights and load them into the vendored arch."""
     from huggingface_hub import hf_hub_download
 

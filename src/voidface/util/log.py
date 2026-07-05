@@ -52,6 +52,6 @@ def configure_logging(level: str = "INFO", *, use_colors: bool | None = None) ->
     )
 
 
-def get_logger(name: str) -> Any:  # noqa: ANN401 -- structlog exposes Any-like
+def get_logger(name: str) -> Any:
     """Return a structlog logger bound to ``name``."""
     return structlog.get_logger(name)

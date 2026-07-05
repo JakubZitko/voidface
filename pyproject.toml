@@ -146,17 +146,43 @@ select = [
 ignore = [
     "D100",  # missing docstring in public module (module docstrings are in the code)
     "D104",  # missing docstring in public package
+    "D105",  # missing docstring in magic method (__post_init__ etc.)
+    "D107",  # missing docstring in __init__ (class docstring is authoritative)
+    "D200",  # one-line docstring should fit on one line (we favor readability)
     "D203",  # 1 blank line required before class docstring (conflict with D211)
+    "D205",  # 1 blank line required between summary and description (too pedantic)
     "D213",  # multi-line docstring summary should start at second line (D212 wins)
+    "D400",  # first line should end with a period (too pedantic for module docs)
+    "D401",  # first line should be imperative mood (fine either way)
+    "D404",  # first word of docstring should not be This
+    "D415",  # first line should end with punctuation
+    "N812",  # torch.nn.functional as F is the standard PyTorch idiom
+    "N806",  # variable in function should be lowercase (matrix/tensor names use caps)
     "PLR0913",  # too many arguments (ML code)
+    "PLR0912",  # too many branches (long ensemble-target dispatch functions)
+    "PLR0915",  # too many statements (same)
+    "PLR2004",  # magic value comparisons (thresholds are named where load-bearing)
+    "SIM108",  # ternary vs if-else (either can be clearer)
+    "TCH003",  # move standard-library imports into type-checking blocks
+    "TCH001",  # same for local imports
+    "PT011",  # pytest.raises match string (we use messages liberally)
+    "B008",   # function call in argument defaults (dataclass field factories)
+    "RUF012", # mutable class attributes need typing (dataclass fields)
+    "N802",   # function name lowercase (upstream API compatibility)
+    "N803",   # argument name lowercase (upstream API compatibility)
+    "N815",   # mixedCase variable (upstream weight names use it)
 ]
 
 [tool.ruff.lint.pydocstyle]
 convention = "google"
 
 [tool.ruff.lint.per-file-ignores]
-"tests/**" = ["D"]
-"scripts/**" = ["D"]
+"tests/**" = ["D", "S", "PT", "ANN", "PLR", "SLF"]
+"scripts/**" = ["D", "S", "T20"]
+# Vendored files carry their upstream style. Only enforce SPDX + imports.
+"src/voidface/models/recognizers/_iresnet.py" = ["ALL"]
+"src/voidface/models/detectors/_retinaface_arch.py" = ["ALL"]
+"src/voidface/models/restorers/_gfpgan/**" = ["ALL"]
 
 [tool.ruff.format]
 quote-style = "double"

@@ -30,7 +30,6 @@ from __future__ import annotations
 from typing import TYPE_CHECKING
 
 import torch
-import torch.nn.functional as F
 from torch import Tensor
 
 from voidface.data.align import align_faces, unalign_paste
@@ -132,7 +131,7 @@ class GfpganRestorer:
 
 
 def _pick_top_landmarks(
-    outputs, image: Tensor, threshold: float  # noqa: ANN001
+    outputs, image: Tensor, threshold: float
 ) -> Tensor | None:
     """Extract the top-scoring anchor's landmarks per batch element.
 
@@ -168,7 +167,7 @@ def _pick_top_landmarks(
     return landmarks_640 * scale_xy
 
 
-def _load_gfpgan_v1_4_weights(model_id: str, device: torch.device):  # noqa: ANN202
+def _load_gfpgan_v1_4_weights(model_id: str, device: torch.device):
     """Fetch and load GFPGAN v1.4 weights."""
     from pathlib import Path
 

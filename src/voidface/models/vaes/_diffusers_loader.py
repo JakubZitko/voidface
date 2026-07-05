@@ -59,7 +59,7 @@ def load_autoencoder_kl(
     subfolder: str | None = None,
     weights_filename: str = "diffusion_pytorch_model.safetensors",
     config_filename: str = "config.json",
-):  # noqa: ANN201 -- returns diffusers AutoencoderKL
+):
     """Load a diffusers :class:`AutoencoderKL` on our constrained stack.
 
     Args:

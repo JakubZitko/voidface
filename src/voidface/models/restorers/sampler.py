@@ -38,7 +38,7 @@ class SamplerConfig:
     _rng: random.Random = field(init=False, repr=False, compare=False)
 
     def __post_init__(self) -> None:
-        object.__setattr__(self, "_rng", random.Random(self.seed))  # noqa: S311
+        object.__setattr__(self, "_rng", random.Random(self.seed))
 
 
 class RestorerSampler:

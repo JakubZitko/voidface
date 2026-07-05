@@ -65,7 +65,7 @@ class Sd15Vae(nn.Module):
         self._vae = load_autoencoder_kl(_MODEL_ID, self._device)
 
     @property
-    def underlying_vae(self):  # noqa: ANN201 -- returns the diffusers AutoencoderKL
+    def underlying_vae(self):
         """Expose the wrapped ``AutoencoderKL`` for shared use.
 
         The restorer :class:`voidface.models.restorers.sd_vae.Sd15VaeRestorer`

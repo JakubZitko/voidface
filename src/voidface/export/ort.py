@@ -64,7 +64,7 @@ def convert_onnx_to_ort(
     if staged_input.resolve() != input_path.resolve():
         shutil.copy2(input_path, staged_input)
 
-    completed = subprocess.run(  # noqa: S603 -- fully-controlled args
+    completed = subprocess.run(
         [
             sys.executable,
             "-m",

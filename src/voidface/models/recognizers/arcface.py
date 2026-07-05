@@ -105,7 +105,7 @@ class Arcface(nn.Module):
         return super().__call__(image)  # type: ignore[no-any-return]
 
 
-def _load_iresnet100_with_weights(model_id: str, device: torch.device):  # noqa: ANN202
+def _load_iresnet100_with_weights(model_id: str, device: torch.device):
     """Download ArcFace R100 weights and load into a vendored IResNet.
 
     The cvlface checkpoint bundles the arch under a wrapper module, so
