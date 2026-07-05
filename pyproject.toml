@@ -65,6 +65,12 @@ train = [
     "diffusers>=0.27; sys_platform != 'darwin' or platform_machine != 'x86_64'",
     "huggingface-hub>=0.24,<0.30; sys_platform == 'darwin' and platform_machine == 'x86_64'",
     "huggingface-hub>=0.24; sys_platform != 'darwin' or platform_machine != 'x86_64'",
+    # Phase R4.6 — CLIP-family surrogate. transformers ships
+    # CLIPVisionModel that loads openai/clip-vit-base-patch32 in a
+    # single call, no open_clip_torch/timm/ftfy fan-out. Cap the
+    # release line on Intel Mac to keep torch 2.2 compat.
+    "transformers>=4.30,<4.45; sys_platform == 'darwin' and platform_machine == 'x86_64'",
+    "transformers>=4.30; sys_platform != 'darwin' or platform_machine != 'x86_64'",
 ]
 export = [
     "onnx>=1.16",

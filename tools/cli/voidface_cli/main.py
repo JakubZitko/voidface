@@ -152,7 +152,7 @@ def _cmd_protect(args: argparse.Namespace) -> int:
     log.info("image.loaded", shape=tuple(clean.shape))
 
     selected = {t.strip() for t in args.targets.split(",") if t.strip()}
-    allowed = {"detector", "recognizer", "vae", "sdxl-vae"}
+    allowed = {"detector", "recognizer", "vae", "sdxl-vae", "openclip"}
     if not selected.issubset(allowed):
         unknown = sorted(selected - allowed)
         log.error("targets.unknown", unknown=unknown, allowed=sorted(allowed))
@@ -213,6 +213,14 @@ def _cmd_protect(args: argparse.Namespace) -> int:
         target_losses["sdxl-vae"] = (sdxl_vae, vae_gray_latent_loss)
         target_static_data["sdxl-vae"] = sdxl_gray_target
         weights_targets["sdxl-vae"] = 0.15
+
+    if "openclip" in selected:
+        from voidface.models.clip.openclip import OpenClip
+
+        log.info("model.openclip.loading", name="openclip-vit-b-32")
+        openclip = OpenClip(device=device)
+        target_losses["openclip"] = (openclip, arcface_identity_loss)
+        weights_targets["openclip"] = 0.10
 
     if not target_losses:
         log.error("targets.empty")

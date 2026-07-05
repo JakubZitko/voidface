@@ -1,6 +1,59 @@
 Voidface changelog. Newest at the top. Time flows downward.
 
 
+Voidface 0.0.9 — 2026-07-05 — Phase R4.6: OpenAI CLIP ViT-B/32 surrogate
+
+    First CLIP-family target lands. Every 2024-2026 personalization
+    pipeline (IP-Adapter, InstantID, PhotoMaker, PuLID) conditions on
+    a CLIP-family image embedding. This target reproduces the shape
+    of that conditioning path in the ensemble.
+
+    New target:
+
+    * src/voidface/models/clip/openclip.py — OpenClip(nn.Module) —
+      differentiable OpenAI CLIP ViT-B/32 image encoder. Loaded via
+      transformers.CLIPVisionModel from openai/clip-vit-base-patch32
+      (~150 MB). Input adaptation: antialias resize to 224, CLIP
+      per-channel mean/std normalization (0.481/0.458/0.408 mean,
+      0.269/0.261/0.276 std). Output: L2-normalized 768-D pooled CLS
+      embedding.
+    * TargetSpec name 'openclip-vit-b-32', family 'clip'.
+
+    Dep footprint:
+
+    * pyproject.toml — transformers added to [train]. Capped below
+      4.45 on Intel Mac (torch 2.2 compat). Unconstrained elsewhere.
+    * open_clip_torch NOT added per the R4 packaging critic — its
+      transitive fanout (timm + ftfy + regex + sentencepiece) would
+      collide with the Intel-Mac huggingface_hub ceiling.
+
+    CLI wiring:
+
+    * 'openclip' added to --targets. Weight 0.10 in the composite;
+      documented as a bootstrap surrogate — cross-scale attack
+      transfer to the H/14 encoders IP-Adapter actually uses is only
+      20-40%, so this weight stays modest until R5 adds ViT-L/14.
+
+    Tests:
+
+    * tests/unit/test_openclip_smoke.py — module import, spec check,
+      monkey-patched wrapper test that verifies (a) antialias resize
+      to 224, (b) CLIP mean/std normalization brings channels to ~0
+      when the input equals the mean, (c) output is L2-normalized
+      768-D.
+    * Suite is 42 tests, all passing.
+
+    R4 status:
+
+    * R4.1 ✅ shared VAE loader
+    * R4.2 ✅ SDXL VAE
+    * R4.3 ✅ real ArcFace
+    * R4.4 ✅ real RetinaFace
+    * R4.5.1 ✅ vendored GFPGAN architecture (facexlib-free)
+    * R4.5.2 — GfpganRestorer + aligner + bilevel LPIPS (deferred)
+    * R4.6 ✅ OpenAI CLIP ViT-B/32 (this commit)
+
+
 Voidface 0.0.8 — 2026-07-05 — Phase R4.5.1: vendored GFPGAN architecture (facexlib-free)
 
     The vendoring half of the R4 headline. The GFPGANv1Clean and
