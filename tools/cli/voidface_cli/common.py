@@ -70,7 +70,7 @@ def renormalize_weights(weights: dict[str, float]) -> None:
 
 def load_generator_checkpoint(
     path: Path, device: object, log: object
-) -> tuple[Voidface, VoidfaceConfig]:  # noqa: F821
+) -> tuple[Voidface, VoidfaceConfig]:
     """Load a Voidface checkpoint into a fresh generator on ``device``.
 
     Args:
@@ -127,21 +127,21 @@ def load_generator_checkpoint(
     return generator, config
 
 
-def run_generator_and_save(  # noqa: PLR0913
-    generator,  # noqa: ANN001
-    config,  # noqa: ANN001
-    clean,  # noqa: ANN001
+def run_generator_and_save(
+    generator,
+    config,
+    clean,
     output_path: Path,
     epsilon_int: int,
     face_mask: bool = False,
-):  # noqa: ANN201
+):
     """Run G on ``clean``, apply optional face mask, save to disk.
 
     Extracted from _protect_via_generator so both single-image and
     batch paths share the same forward + save sequence.
     """
     import torch
-    import torch.nn.functional as F  # noqa: N812
+    import torch.nn.functional as F
 
     from voidface.util.image import save_image
 
