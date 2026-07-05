@@ -53,3 +53,20 @@ def test_info_missing_checkpoint_errors(tmp_path: Path, capsys) -> None:  # noqa
     assert rc == 2
     err = capsys.readouterr().err
     assert "not found" in err
+
+
+def test_info_diff_prints_side_by_side(tmp_path: Path, capsys) -> None:  # noqa: ANN001
+    from voidface_cli.main import main
+
+    a = tmp_path / "a.pt"
+    b = tmp_path / "b.pt"
+    _write_checkpoint(a, step=100)
+    _write_checkpoint(b, step=200)
+
+    rc = main(["info", str(a), "--diff", str(b)])
+    assert rc == 0
+    out = capsys.readouterr().out
+    assert "diff" in out
+    assert "step" in out
+    # step differs; expect the marker.
+    assert "*" in out

@@ -480,6 +480,18 @@ def _build_parser() -> argparse.ArgumentParser:
         action="store_true",
         help="Emit machine-readable JSON instead of the human summary.",
     )
+    p_info.add_argument(
+        "--diff",
+        type=Path,
+        default=None,
+        metavar="OTHER_CHECKPOINT",
+        help=(
+            "Additional checkpoint to compare against. Prints a side-by-side "
+            "table of the two checkpoints' training steps, param counts, "
+            "file sizes, and configs. Useful for verifying two runs used "
+            "the same hyperparameters."
+        ),
+    )
 
     p_cc = sub.add_parser(
         "config-check",
@@ -1252,6 +1264,59 @@ def _cmd_config_check(args: argparse.Namespace) -> int:
     return 0
 
 
+def _cmd_info_diff(a: Path, b: Path) -> int:
+    """Print a side-by-side comparison of two checkpoints."""
+    import sys
+
+    import torch
+
+    from voidface.generator.architecture import Voidface, VoidfaceConfig
+
+    for path in (a, b):
+        if not path.exists():
+            print(f"error: checkpoint not found: {path}", file=sys.stderr)
+            return 2
+
+    def _load(path: Path):  # noqa: ANN202
+        payload = torch.load(path, map_location="cpu", weights_only=False)
+        if isinstance(payload, dict) and "state_dict" in payload:
+            stored = payload.get("config")
+            config = stored if isinstance(stored, VoidfaceConfig) else VoidfaceConfig()
+            step = payload.get("step")
+            state_dict = payload["state_dict"]
+        else:
+            state_dict = payload
+            config = VoidfaceConfig()
+            step = None
+        net = Voidface(config)
+        net.load_state_dict(state_dict)
+        return {
+            "path": str(path),
+            "size_mb": path.stat().st_size / 1024 / 1024,
+            "step": step,
+            "params": sum(p.numel() for p in net.parameters()),
+            "epsilon": config.epsilon,
+            "base_channels": config.base_channels,
+            "num_stages": config.num_stages,
+            "attention": config.attention_at_bottleneck,
+        }
+
+    left = _load(a)
+    right = _load(b)
+
+    def _fmt(key: str, l_val: object, r_val: object) -> str:
+        marker = "  " if l_val == r_val else " *"
+        return f"{marker}{key:22s}  {str(l_val):32s}  {str(r_val)}"
+
+    print(f"--- diff ---   A: {left['path']}\n              B: {right['path']}")
+    print(f"{'':2}{'field':22s}  {'A':32s}  {'B'}")
+    for key in ("size_mb", "step", "params", "epsilon", "base_channels",
+                "num_stages", "attention"):
+        print(_fmt(key, left[key], right[key]))
+    print("(* marks a difference)")
+    return 0
+
+
 def _cmd_info(args: argparse.Namespace) -> int:
     """Print a checkpoint's metadata."""
     import json
@@ -1260,6 +1325,9 @@ def _cmd_info(args: argparse.Namespace) -> int:
     import torch
 
     from voidface.generator.architecture import Voidface, VoidfaceConfig
+
+    if args.diff is not None:
+        return _cmd_info_diff(args.checkpoint, args.diff)
 
     if not args.checkpoint.exists():
         print(f"error: checkpoint not found: {args.checkpoint}", file=sys.stderr)
