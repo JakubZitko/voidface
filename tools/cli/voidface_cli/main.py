@@ -102,10 +102,12 @@ def _build_parser() -> argparse.ArgumentParser:
         default="identity",
         help=(
             "Comma-separated restorer distribution for the bilevel loop. "
-            "Format: 'name[:weight],...'. Options: 'identity', 'sd15-vae'. "
-            "Default: 'identity' (no bilevel wrapping). Example: "
-            "'identity:0.3,sd15-vae:0.7' samples the SD 1.5 VAE round-trip "
-            "70%% of steps. 'sd15-vae' implicitly loads the VAE target too."
+            "Format: 'name[:weight],...'. Options: 'identity', 'sd15-vae', "
+            "'gfpgan'. Default: 'identity'. Example: "
+            "'identity:0.1,sd15-vae:0.3,gfpgan:0.6' — the R4 CEO-critic "
+            "recommended mix — samples GFPGAN 60%% of steps. 'sd15-vae' "
+            "implicitly loads the VAE target too; 'gfpgan' implicitly "
+            "loads the RetinaFace detector for landmarks."
         ),
     )
 
@@ -265,6 +267,19 @@ def _cmd_protect(args: argparse.Namespace) -> int:
 
             assert vae is not None, "sd15-vae restorer requires the VAE target."
             restorer_options.append((Sd15VaeRestorer(encoder=vae), weight))
+        elif name == "gfpgan":
+            from voidface.models.restorers.gfpgan import GfpganRestorer
+
+            # gfpgan restorer needs a detector for landmarks — reuse
+            # the one already loaded if present, otherwise load one.
+            gfpgan_detector = target_losses.get("detector", (None,))[0]
+            if gfpgan_detector is None:
+                from voidface.models.detectors.retinaface import RetinaFace
+
+                log.info("model.detector.loading", name="retinaface-r50", reason="gfpgan needs landmarks")
+                gfpgan_detector = RetinaFace(device=device)
+            log.info("model.gfpgan.loading", name="gfpgan-v1.4")
+            restorer_options.append((GfpganRestorer(detector=gfpgan_detector, device=device), weight))
 
     restorer_sampler = RestorerSampler(restorer_options, SamplerConfig(seed=args.seed))
     log.info(
@@ -317,7 +332,7 @@ def _cmd_report(args: argparse.Namespace) -> int:
 # --- helpers -----------------------------------------------------------------
 
 
-_ALLOWED_RESTORERS = {"identity", "sd15-vae"}
+_ALLOWED_RESTORERS = {"identity", "sd15-vae", "gfpgan"}
 
 
 def _parse_restorer_spec(spec: str) -> list[tuple[str, float]] | None:

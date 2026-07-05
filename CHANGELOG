@@ -1,6 +1,92 @@
 Voidface changelog. Newest at the top. Time flows downward.
 
 
+Voidface 0.0.11 — 2026-07-05 — Phase R4.5.2b: GFPGAN restorer in the bilevel loop (R4 HEADLINE)
+
+    The real face restorer is now in the training loop. Every
+    off-the-shelf face-swap and nudify pipeline in 2025-2026 runs
+    GFPGAN or CodeFormer as a mandatory final step; a Voidface delta
+    that survives it is a delta that survives the actual attack, not
+    just the pre-restorer proxy we have been optimizing against
+    through R3.
+
+    New:
+
+    * src/voidface/models/restorers/gfpgan.py — GfpganRestorer.
+      Satisfies the Restorer protocol: (N, 3, H, W) [0, 1] in ->
+      same shape and range out. Pipeline:
+
+          x  ->  RetinaFace     (landmarks)
+             ->  align_faces    (5-pt similarity, differentiable)
+             ->  GFPGANv1Clean  (aligned 512x512 crop, [-1, 1])
+             ->  denorm + clamp ([0, 1])
+             ->  unalign_paste  (inverse transform + feathered blend)
+
+      Reuses the RetinaFace instance already loaded by the training
+      loop for the detector suppression target — no second detector
+      forward, no duplicated network.
+    * Weight source: TencentARC/GFPGANv1 (GFPGANv1.4.pth, 348 MB).
+      Fetched via huggingface_hub. Legacy 'params_ema' vs
+      'state_dict' vs raw pickle shapes handled at load time.
+    * Fallback to identity restore per batch element when the
+      detector reports below-threshold face confidence. Silent
+      fallback would hide detector failures; we warn and pass-through.
+    * The R4 CEO critic requirement — the restorer sees an
+      FFHQ-aligned crop, not a raw off-distribution frame — is
+      structurally satisfied by the aligner from R4.5.2a.
+
+    CLI:
+
+    * 'gfpgan' added to --restorers. Weight defaults to 1.0 per entry.
+      Auto-loads the RetinaFace detector for landmarks if the user
+      did not explicitly select the 'detector' target.
+    * Documented recommended R4 mix: 'identity:0.1,sd15-vae:0.3,
+      gfpgan:0.6' — the CEO-critic distribution that pushes the
+      generator to survive the actual attacker pipeline most of the
+      time while still working against un-restored bulk scrapers.
+
+    Tests:
+
+    * tests/unit/test_gfpgan_restorer_smoke.py — 4 tests using stub
+      RetinaFace + stub GFPGANv1Clean to keep CI off the 348 MB
+      download:
+        - Restorer protocol satisfied (structural typing check).
+        - Input shape preserved through the detect -> align -> forward
+          -> unalign round-trip.
+        - Gradient flows through the whole bilevel pipeline
+          (image -> landmarks -> align -> gfpgan -> unalign -> loss).
+        - Fallback works when the detector reports no face above
+          threshold.
+    * Suite is 52 tests, all passing.
+
+    What R4.5.2b DOES NOT yet include (R4.5.2c, next commit):
+
+    * The bilevel LPIPS term LPIPS(gfpgan(x+delta), gfpgan(x_clean))
+      in the composite loss. The CEO critic requested this and the
+      current commit sets up all the infrastructure — the restorer
+      IS invoked on both the perturbed and clean paths already inside
+      the R2 CompositeLoss; the missing piece is adding an explicit
+      perceptual term on the restored outputs, not just per-target
+      adversarial losses.
+    * SHA-256 integrity gate on the GFPGANv1.4.pth download.
+      Documented as a risk carried into R5 self-hosting per the
+      packaging critic.
+    * MPS gradient checkpointing across the 8 StyleGAN2 decoder
+      blocks. Guardrail for Intel-Mac emulated MPS 6.77 GB ceiling.
+
+    R4 is now:
+
+    * R4.1 ✅ shared VAE loader
+    * R4.2 ✅ SDXL VAE
+    * R4.3 ✅ real ArcFace
+    * R4.4 ✅ real RetinaFace + stand-in purge
+    * R4.5.1 ✅ vendored GFPGAN architecture
+    * R4.5.2a ✅ differentiable 5-point aligner
+    * R4.5.2b ✅ GfpganRestorer + CLI wiring (this commit)
+    * R4.5.2c — bilevel LPIPS + SHA gate + MPS grad checkpoint (next)
+    * R4.6 ✅ OpenAI CLIP ViT-B/32
+
+
 Voidface 0.0.10 — 2026-07-05 — Phase R4.5.2a: differentiable 5-point aligner
 
     Prerequisite for the GfpganRestorer in R4.5.2b. The R4 CEO critic
