@@ -554,6 +554,13 @@ def _cmd_protect(args: argparse.Namespace) -> int:
     configure_logging(level="DEBUG" if args.verbose else "INFO")
     log = get_logger("voidface.cli")
 
+    if args.refine_steps > 0 and args.use_generator is None:
+        log.error(
+            "refine_steps.without_generator",
+            hint="--refine-steps N requires --use-generator CKPT",
+        )
+        return 2
+
     device = _resolve_device(args.device)
     log.info("device.selected", device=str(device))
 
