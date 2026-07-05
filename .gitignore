@@ -100,3 +100,7 @@ Thumbs.db
 .env
 .env.local
 .env.*.local
+
+# Voidface build artifacts under samples/ — protected outputs, benchmarks
+samples/images/*.protected.*
+samples/images/*.benchmarked.*

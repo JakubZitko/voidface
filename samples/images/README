@@ -1,0 +1,11 @@
+Sample images used by the CLI examples and integration tests.
+
+Everything in this directory must be either synthetic (procedurally
+generated with no likeness) or explicitly public-domain. Face
+photographs of real people belong in your own local scratch directory,
+not the repository — see the .gitignore for the *.protected.* pattern.
+
+Files:
+
+    synthetic_face.png   Procedurally generated ellipse-with-eyes used
+                         as a smoke-test target. Not a real face.

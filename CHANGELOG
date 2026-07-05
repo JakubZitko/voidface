@@ -1,6 +1,54 @@
 Voidface changelog. Newest at the top. Time flows downward.
 
 
+Voidface 0.0.2 — 2026-07-05 — Phase R1: end-to-end PGD baseline
+
+    First working adversarial pipeline. `voidface protect <image>` runs
+    a real PGD attack against a real face-recognition network and saves
+    a perturbed output with the L-infinity budget honored and PSNR
+    reported.
+
+    * src/voidface/util/{image,log,config}.py — canonical tensor I/O,
+      structlog logger, TOML config loader.
+    * src/voidface/core/eot.py — expectation-over-transformation
+      sampler with resize and Gaussian blur. Differentiable JPEG and
+      the WEBP/AVIF surrogates land in Phase R2.
+    * src/voidface/core/loss.py — composite adversarial loss
+      (CompositeLoss, LossWeights, LossBreakdown) plus the atomic
+      RetinaFace suppression and ArcFace identity terms and a TV
+      regularizer.
+    * src/voidface/core/pgd.py — reference per-image signed-gradient
+      PGD kernel with MI-FGSM momentum, EOT wrapping, and per-step
+      history.
+    * src/voidface/models/detectors/mtcnn_pnet.py — PNet detector
+      surrogate (Phase R1 stand-in; replaced by RetinaFace/SCRFD/
+      YuNet/MTCNN in Phase R2).
+    * src/voidface/models/recognizers/facenet.py — InceptionResnetV1
+      identity encoder surrogate (Phase R1 stand-in; replaced by
+      ArcFace/MagFace/AdaFace in Phase R2).
+    * tools/cli/voidface_cli/main.py — `protect` and `report`
+      subcommands wired end-to-end.
+    * facenet-pytorch added as the Phase R1 [train] dependency (both
+      P-Net and InceptionResnetV1 auto-download weights on first use).
+    * tests/unit/test_pgd_synthetic.py — proves the PGD loop converges
+      against a synthetic differentiable target in milliseconds.
+    * tests/unit/test_image.py — round-trip and shape tests for the
+      canonical tensor I/O layer.
+    * samples/images/synthetic_face.png — public-domain smoke target.
+
+    Verified: R1 recognizer loss dropped 97% (1.997 → 0.058) in 20
+    PGD steps against a real face-recognition network. L-infinity
+    budget held exactly at 12/255.
+
+    Known limits:
+    * Detector surrogate is P-Net only; the R2 4-detector ensemble
+      is not implemented.
+    * VAEs, CLIP-family, and restorers are still unimplemented; the
+      bilevel training objective is not yet exercised.
+    * Trained generator G is not yet built. This release runs
+      per-image PGD, not a single forward pass.
+
+
 Voidface 0.0.1 — 2026-07-05
 
     Initial repository scaffold.

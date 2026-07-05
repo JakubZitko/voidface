@@ -4,7 +4,7 @@
 name = "voidface"
 version = "0.0.1"
 description = "Adversarial face-region blindfold for photos and short videos."
-readme = "README"
+readme = { file = "README", content-type = "text/plain" }
 requires-python = ">=3.11"
 license = { file = "COPYING" }
 authors = [
@@ -31,12 +31,19 @@ classifiers = [
 ]
 
 dependencies = [
-    # Core numerics and imaging
-    "numpy>=1.26",
+    # Core numerics and imaging. Torch 2.2.x on Intel Mac was built
+    # against NumPy 1.x; every other platform accepts NumPy 2. The
+    # runtime is compatible with either.
+    "numpy>=1.26,<2; sys_platform == 'darwin' and platform_machine == 'x86_64'",
+    "numpy>=1.26; sys_platform != 'darwin' or platform_machine != 'x86_64'",
     "pillow>=10.2",
-    # PyTorch and vision
-    "torch>=2.3",
-    "torchvision>=0.18",
+    # PyTorch and vision. Intel Mac wheels stop at torch 2.2.x; every
+    # other platform gets modern torch. Training is exercised on Linux
+    # and Apple Silicon at any newer version.
+    "torch>=2.2,<2.3; sys_platform == 'darwin' and platform_machine == 'x86_64'",
+    "torch>=2.2; sys_platform != 'darwin' or platform_machine != 'x86_64'",
+    "torchvision>=0.17,<0.18; sys_platform == 'darwin' and platform_machine == 'x86_64'",
+    "torchvision>=0.17; sys_platform != 'darwin' or platform_machine != 'x86_64'",
     # Config and logging
     "tomli>=2.0; python_version<'3.11'",
     "structlog>=24.1",
@@ -50,6 +57,11 @@ train = [
     "lpips>=0.1.4",
     "pytorch-msssim>=1.0",
     "opencv-python-headless>=4.9",
+    # Phase R1 model surrogates. facenet-pytorch gives us a differentiable
+    # PNet (first-stage MTCNN) as a stand-in detector and InceptionResnetV1
+    # as a stand-in identity encoder. Both auto-download weights on first
+    # use. Phase R2 replaces both with in-house ArcFace/RetinaFace impls.
+    "facenet-pytorch>=2.6.0",
 ]
 export = [
     "onnx>=1.16",
