@@ -9,11 +9,24 @@ If we can drive the VAE latent toward a null target for a Voidface-cloaked
 image, downstream generation decodes something structurally unrelated to
 the source photo.
 
-| VAE           | Latent shape (512²)  | Family                | Weight |
-| ------------- | -------------------- | --------------------- | ------ |
-| SD 1.5 VAE    | 4 × 64 × 64          | Automatic1111 / A11    | 0.30   |
-| SDXL VAE      | 4 × 128 × 128        | SDXL, InstantID base  | 0.25   |
-| Flux VAE      | 16 × 32 × 32         | Flux, SD3             | 0.20   |
+**Currently shipped (R4.1 - R4.2):** SD 1.5 VAE and SDXL VAE. Both
+loaded through the shared `_diffusers_loader` bypass at
+`src/voidface/models/vaes/_diffusers_loader.py` (the R4.1 refactor
+that broke a diffusers 0.29 + torch 2.2 state-dict loading bug).
+Legacy attention keys (`query`/`key`/`value`/`proj_attn`) renamed
+to the modern layout (`to_q`/`to_k`/`to_v`/`to_out.0`).
+
+Weights:
+- SD 1.5 VAE: `stabilityai/sd-vae-ft-mse` (334 MB, standalone repo
+  since the full SD 1.5 checkpoint has gated files).
+- SDXL VAE: `madebyollin/sdxl-vae-fp16-fix` (334 MB, the community-
+  standard fp16-stable variant).
+
+| VAE           | Latent shape (512²) | Family                | Weight | Status         |
+| ------------- | ------------------- | --------------------- | ------ | -------------- |
+| SD 1.5 VAE    | 4 × 64 × 64         | Automatic1111 / SD    | 0.30   | ✅ shipped R2  |
+| SDXL VAE      | 4 × 64 × 64 (256²)  | SDXL, InstantID base  | 0.25   | ✅ shipped R4.2|
+| Flux VAE      | 16 × 32 × 32        | Flux, SD3             | 0.20   | roadmap        |
 
 The attack objective per VAE is:
 

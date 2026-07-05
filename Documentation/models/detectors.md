@@ -5,17 +5,22 @@ one stage a face restorer cannot compensate for. If the detector misses
 the face, the entire downstream pipeline does not run. Every attack in
 Voidface targets this stage first.
 
-We include four detectors as differentiable surrogates. Blinding all
-four simultaneously gives strong transfer to the fifth, sixth, seventh
-detectors that we did not include, because they share the same FPN /
-anchor design and are pretrained on WIDER FACE.
+**Currently shipped (R4.4):** RetinaFace-R50. Vendored from
+biubug6/Pytorch_Retinaface (MIT), weights fetched from
+`yakhyo/retinaface-pytorch` (109 MB). Returns raw pre-softmax
+classification logits + bbox + landmarks. The wrapper is at
+`src/voidface/models/detectors/retinaface.py`.
 
-| Detector    | Backbone        | Anchor style     | Weight in ensemble |
-| ----------- | --------------- | ---------------- | ------------------ |
-| RetinaFace  | ResNet-50       | Anchor-based FPN | 0.15               |
-| SCRFD       | Custom ResNet   | Anchor-free      | 0.15               |
-| YuNet       | Tiny (~85K)     | Anchor-free      | 0.10               |
-| MTCNN       | P/R/O-Net       | Cascade          | 0.10               |
+**Ensemble plan (R5.5+):** the composite loss uses the R5.5 reference
+weights below; RetinaFace ships today and the other three land as
+additional surrogates in follow-up commits.
+
+| Detector    | Backbone        | Anchor style     | Weight in ensemble | Status         |
+| ----------- | --------------- | ---------------- | ------------------ | -------------- |
+| RetinaFace  | ResNet-50       | Anchor-based FPN | 0.15               | ✅ shipped R4.4|
+| SCRFD       | Custom ResNet   | Anchor-free      | 0.15               | roadmap        |
+| YuNet       | Tiny (~85K)     | Anchor-free      | 0.10               | roadmap        |
+| MTCNN       | P/R/O-Net       | Cascade          | 0.10               | roadmap        |
 
 Full attack surface analysis, per-detector loss formulas, and current
 attack-success-rate numbers live in the subsystem source under
