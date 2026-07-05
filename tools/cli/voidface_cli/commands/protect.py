@@ -236,6 +236,14 @@ def run(args: argparse.Namespace) -> int:  # noqa: PLR0911
     device = resolve_device(args.device)
     log.info("device.selected", device=str(device))
 
+    if not args.image.exists():
+        log.error(
+            "image.not_found",
+            path=str(args.image),
+            hint="pass a real image path, or a directory for batch mode",
+        )
+        return 2
+
     if args.image.is_dir():
         return _protect_batch(args, device, log)
 
