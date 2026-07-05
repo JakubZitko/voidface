@@ -297,6 +297,19 @@ def _build_parser() -> argparse.ArgumentParser:
         default="mp4v",
         help="FourCC output codec (default 'mp4v'; 'avc1' if your OpenCV supports it).",
     )
+    p_pv.add_argument(
+        "--temporal-blend",
+        type=float,
+        default=0.7,
+        metavar="ALPHA",
+        help=(
+            "Blend factor for temporal coherence (Farnebäck optical flow "
+            "warping of the prior frame's delta). 0.0 disables and the "
+            "video is per-frame independent (boiling texture). 1.0 uses "
+            "only the warped prior. Default 0.7 — heavily weighted to the "
+            "warped prior with a fresh G contribution to track scene changes."
+        ),
+    )
 
     return parser
 
@@ -644,10 +657,11 @@ _ALLOWED_RESTORERS = {"identity", "sd15-vae", "gfpgan"}
 
 
 def _cmd_protect_video(args: argparse.Namespace) -> int:
-    """Per-frame video protection via the deploy fast path."""
+    """Video protection via the deploy fast path with optional temporal blending."""
     import torch
     import torch.nn.functional as F
 
+    from voidface.util.flow import farneback_flow, warp_forward
     from voidface.util.log import configure_logging, get_logger
     from voidface.util.video import iter_frames, write_video
 
@@ -664,6 +678,7 @@ def _cmd_protect_video(args: argparse.Namespace) -> int:
         height=metadata.height,
         fps=metadata.fps,
         frame_count=metadata.frame_count,
+        temporal_blend=args.temporal_blend,
     )
 
     divisor = 1 << config.num_stages
@@ -672,22 +687,46 @@ def _cmd_protect_video(args: argparse.Namespace) -> int:
     pad_bottom = padded_h - metadata.height
     pad_right = padded_w - metadata.width
     epsilon = args.epsilon / 255.0
+    alpha = float(args.temporal_blend)
 
     def _protected_frames():  # noqa: ANN202
+        prev_frame_cpu: torch.Tensor | None = None
+        prev_delta_cpu: torch.Tensor | None = None
         with torch.no_grad():
             for index, frame in enumerate(frames):
-                frame = frame.unsqueeze(0).to(device)
+                frame_batched = frame.unsqueeze(0).to(device)
                 if pad_bottom > 0 or pad_right > 0:
                     frame_padded = F.pad(
-                        frame, (0, pad_right, 0, pad_bottom), mode="reflect"
+                        frame_batched,
+                        (0, pad_right, 0, pad_bottom),
+                        mode="reflect",
                     )
                 else:
-                    frame_padded = frame
-                adversarial = generator(frame_padded, epsilon=epsilon)
-                adversarial = adversarial[..., : metadata.height, : metadata.width]
+                    frame_padded = frame_batched
+                fresh = generator(frame_padded, epsilon=epsilon)
+                fresh = fresh[..., : metadata.height, : metadata.width]
+                fresh_delta = (fresh - frame_batched).squeeze(0).cpu()
+
+                if prev_delta_cpu is None or alpha <= 0.0:
+                    delta = fresh_delta
+                else:
+                    flow = farneback_flow(prev_frame_cpu, frame)  # type: ignore[arg-type]
+                    warped_prev = warp_forward(prev_delta_cpu, flow)
+                    delta = alpha * warped_prev + (1.0 - alpha) * fresh_delta
+
+                delta = delta.clamp(-epsilon, +epsilon)
+                protected_frame = (frame + delta).clamp(0.0, 1.0)
+
                 if (index + 1) % 30 == 0:
-                    log.info("video.progress", frame=index + 1, total=metadata.frame_count)
-                yield adversarial.squeeze(0).cpu()
+                    log.info(
+                        "video.progress",
+                        frame=index + 1,
+                        total=metadata.frame_count,
+                    )
+
+                prev_frame_cpu = frame.detach()
+                prev_delta_cpu = delta.detach()
+                yield protected_frame
 
     write_video(args.output, _protected_frames(), metadata, codec=args.codec)
     log.info("video.written", path=str(args.output))
