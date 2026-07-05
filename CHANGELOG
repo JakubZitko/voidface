@@ -1,6 +1,64 @@
 Voidface changelog. Newest at the top. Time flows downward.
 
 
+Voidface 0.0.12 — 2026-07-05 — Phase R5.1: generator G architecture
+
+    The shipped model lands. Everything up to R4 has been building
+    the training system that produces this network's weights; from R5
+    onwards we build the network itself and the training loop that
+    turns per-image PGD into a single-forward-pass generator.
+
+    New:
+
+    * src/voidface/generator/architecture.py — Voidface(nn.Module),
+      the shipped G:
+        - Encoder: 4-stage U-Net downsampling with residual
+          GroupNorm+GELU blocks. Base channels 16, doubling per stage,
+          capped at 384.
+        - Bottleneck: two residual blocks + optional self-attention
+          (off by default in R5.1 for CoreML export cleanliness).
+        - Decoder: mirror encoder with concatenated skip connections.
+        - Head: GroupNorm + GELU + 3x3 -> 3-channel output.
+        - Delta projection: tanh -> [-epsilon, +epsilon], added to
+          input, clamped to [0, 1].
+    * VoidfaceConfig dataclass — epsilon, base_channels, num_stages,
+      attention_at_bottleneck. Default gives ~5.35 M parameters
+      float32, ~21 MB fp32 -> ~5.5 MB int8 quant. Comfortably inside
+      the R5 <=15 MB shipping ceiling.
+    * Forward accepts an epsilon override so the same trained
+      network can serve different perturbation budgets at inference.
+    * Input contract enforced: (N, 3, H, W) float in [0, 1] RGB,
+      side lengths divisible by 2^num_stages.
+
+    Tests:
+
+    * tests/unit/test_generator.py — 8 tests:
+        - Parameter count within the R5 target (3M-12M).
+        - Forward preserves (N, 3, H, W) shape and stays in [0, 1].
+        - Delta budget: |G(x) - x|_inf <= epsilon at both the config
+          default and the forward override.
+        - Non-divisible input raises with a clear message.
+        - Deterministic: same input, same output on repeat.
+        - Gradient flows to every parameter (needed for training).
+        - Self-attention variant instantiates and forwards.
+    * Suite is 60 tests, all passing.
+
+    What R5.1 explicitly does NOT ship (deferred to R5.2):
+
+    * The training loop that turns per-image PGD into a G-training
+      routine. Draft outline is in Documentation/models/generator.md:
+      for each step, sample a batch of face crops -> forward through
+      G -> compute the same CompositeLoss the PGD kernel already
+      uses -> backprop into G's parameters -> save checkpoint.
+    * Dataset pipeline (FFHQ / CelebA-HQ) — src/voidface/data/
+      currently only has align.py; datasets.py and augment.py are R5.
+    * Distributed training. Single-GPU baseline first; DDP after
+      R5.2 shows convergence.
+    * CoreML and ONNX export. Both are R5.3, once we have trained
+      weights to actually export.
+    * The trained weight release. R5.4.
+
+
 Voidface 0.0.11 — 2026-07-05 — Phase R4.5.2b: GFPGAN restorer in the bilevel loop (R4 HEADLINE)
 
     The real face restorer is now in the training loop. Every
