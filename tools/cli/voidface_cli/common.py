@@ -11,7 +11,7 @@
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Any
 
 if TYPE_CHECKING:
     from pathlib import Path
@@ -69,7 +69,7 @@ def renormalize_weights(weights: dict[str, float]) -> None:
 
 
 def load_generator_checkpoint(
-    path: Path, device: object, log: object
+    path: Path, device: torch.device | str, log: Any
 ) -> tuple[Voidface, VoidfaceConfig]:
     """Load a Voidface checkpoint into a fresh generator on ``device``.
 
