@@ -28,5 +28,19 @@ usual pixel budget elsewhere.
 
 ## Status
 
-Phase R3. Documented here so the subsystem layout matches the eventual
-implementation.
+Phase R7.74 and R7.75. Ships.
+
+- `voidface.attacks.iris.iris_region_mask` — computes a soft binary
+  mask over both irises from the same 5-point landmarks the aligner
+  uses. Radius scales with inter-ocular distance so it is
+  resolution-independent. Coverage in a 512x512 face crop is on the
+  order of 0.03% by default.
+
+- `voidface.core.pgd.run_pgd` accepts `iris_mask` and
+  `iris_epsilon_ratio`. The per-pixel L-infinity budget inside the
+  mask becomes `epsilon * iris_epsilon_ratio` while every pixel
+  outside stays at the standard `epsilon`. Default ratio is `2.0`
+  per the constraint above.
+
+Composition into the shipped generator's training loop and a
+`voidface protect --iris-boost` CLI flag remain follow-up.
