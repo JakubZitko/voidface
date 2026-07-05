@@ -188,7 +188,31 @@ def _build_parser() -> argparse.ArgumentParser:
         "--quantize",
         choices=["int8", "uint8"],
         default=None,
-        help="Also emit a quantized <output>.<type>.onnx alongside the fp32 file.",
+        help=(
+            "Also emit a dynamically-quantized <output>.<type>.onnx alongside "
+            "the fp32 file. Fast, but ORT has known op-support gaps for "
+            "Conv-heavy graphs — the parity is not guaranteed. Prefer "
+            "--quantize-static-dir for shipping quality."
+        ),
+    )
+    p_export.add_argument(
+        "--quantize-static-dir",
+        type=Path,
+        default=None,
+        metavar="CALIBRATION_DIR",
+        help=(
+            "Also emit a statically-quantized <output>.static-int8.onnx "
+            "using CALIBRATION_DIR as the calibration corpus. Iterates the "
+            "folder via FolderImageDataset (up to --quantize-static-samples "
+            "images). Static quant preserves runtime parity within a tight "
+            "tolerance, unlike --quantize (dynamic)."
+        ),
+    )
+    p_export.add_argument(
+        "--quantize-static-samples",
+        type=int,
+        default=64,
+        help="Number of calibration images (default 64).",
     )
     p_export.add_argument(
         "--coreml",
@@ -719,6 +743,36 @@ def _cmd_export(args: argparse.Namespace) -> int:
             "quantize.done",
             path=str(quantized_path),
             size_bytes=quantized_path.stat().st_size,
+        )
+
+    if args.quantize_static_dir is not None:
+        from voidface.data.datasets import FolderImageDataset
+        from voidface.export.quantize import quantize_onnx_generator_static
+
+        log.info(
+            "quantize_static.starting",
+            calibration_dir=str(args.quantize_static_dir),
+            samples=args.quantize_static_samples,
+        )
+        dataset = FolderImageDataset(
+            args.quantize_static_dir,
+            resolution=args.example_resolution,
+            augment=False,
+        )
+
+        def _iterator():  # noqa: ANN202
+            import numpy as np
+
+            limit = min(args.quantize_static_samples, len(dataset))
+            for i in range(limit):
+                yield dataset[i].unsqueeze(0).cpu().numpy().astype(np.float32)
+
+        static_path = args.output.with_suffix(".static-int8.onnx")
+        quantize_onnx_generator_static(args.output, static_path, _iterator())
+        log.info(
+            "quantize_static.done",
+            path=str(static_path),
+            size_bytes=static_path.stat().st_size,
         )
 
     if args.coreml:
