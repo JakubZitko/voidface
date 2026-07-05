@@ -1011,6 +1011,9 @@ Compare A/B:   voidface bench runs/step-050000.pt path/to/test/ \\
                    --baseline previous.json
 Ship-bundle:   voidface package runs/step-050000.pt release-v1/ \\
                    --calibration-dir cal/ --coreml
+Verify a       voidface verify release-v1/
+downloaded
+bundle:
 Export à la    voidface export runs/step-050000.pt out/voidface.onnx \\
     carte:         --quantize int8 --quantize-static-dir cal/ --coreml --ort
 
