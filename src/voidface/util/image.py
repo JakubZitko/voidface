@@ -66,7 +66,11 @@ def save_image(tensor: Tensor, path: Path) -> None:
 
 def pil_to_tensor(image: Image.Image) -> Tensor:
     """Convert a PIL image to the canonical tensor form."""
-    array = np.asarray(image.convert("RGB"), dtype=np.uint8)
+    # np.array copies the PIL buffer; np.asarray sometimes returns a
+    # read-only view which torch.from_numpy warns about because it
+    # cannot enforce PyTorch's mutability invariants. We copy on the
+    # way in so downstream ops are safe.
+    array = np.array(image.convert("RGB"), dtype=np.uint8, copy=True)
     return torch.from_numpy(array).permute(2, 0, 1).float().div(255.0)
 
 
