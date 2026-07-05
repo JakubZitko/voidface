@@ -147,16 +147,21 @@ class Voidface(nn.Module):
         Returns:
             A ``(N, 3, H, W)`` tensor in ``[0.0, 1.0]``.
         """
-        if image.dim() != 4 or image.size(1) != 3:
-            msg = f"Expected (N, 3, H, W) input, got {tuple(image.shape)}."
-            raise ValueError(msg)
-        divisor = 1 << self._config.num_stages
-        if image.shape[-1] % divisor != 0 or image.shape[-2] % divisor != 0:
-            msg = (
-                f"Input side lengths must be divisible by {divisor}. "
-                f"Got {tuple(image.shape[-2:])}. Pad or resize before calling."
-            )
-            raise ValueError(msg)
+        # Shape validation is skipped during tracing so ONNX export
+        # does not fire TracerWarnings on the boolean `if` guards.
+        # The caller (or the CLI's protect / batch paths) is expected
+        # to have padded to the right shape by the time we get here.
+        if not torch.jit.is_tracing():
+            if image.dim() != 4 or image.size(1) != 3:
+                msg = f"Expected (N, 3, H, W) input, got {tuple(image.shape)}."
+                raise ValueError(msg)
+            divisor = 1 << self._config.num_stages
+            if image.shape[-1] % divisor != 0 or image.shape[-2] % divisor != 0:
+                msg = (
+                    f"Input side lengths must be divisible by {divisor}. "
+                    f"Got {tuple(image.shape[-2:])}. Pad or resize before calling."
+                )
+                raise ValueError(msg)
 
         skips: list[Tensor] = []
         feat = self.stem(image)
