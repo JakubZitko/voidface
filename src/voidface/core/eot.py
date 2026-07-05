@@ -41,6 +41,7 @@ class EotConfig:
     samples: int = 4
     resize_factors: tuple[float, ...] = (0.75, 1.0, 1.5)
     gaussian_sigma: tuple[float, ...] = (0.0, 0.5, 1.0)
+    jpeg_qualities: tuple[int, ...] = ()
     seed: int | None = None
     _rng: random.Random = field(init=False, repr=False, compare=False)
 
@@ -99,6 +100,20 @@ class EotSampler:
 
         if sigma > 0.0:
             work = _gaussian_blur(work, sigma=sigma)
+
+        if self._config.jpeg_qualities:
+            from voidface.core.jpeg import differentiable_jpeg
+
+            quality = rng.choice(self._config.jpeg_qualities)
+            # JPEG requires H, W multiples of 8 — pad if needed and crop back.
+            h, w = work.shape[-2:]
+            pad_h = (-h) % 8
+            pad_w = (-w) % 8
+            if pad_h or pad_w:
+                work = F.pad(work, (0, pad_w, 0, pad_h), mode="reflect")
+            work = differentiable_jpeg(work, quality=int(quality))
+            if pad_h or pad_w:
+                work = work[..., :h, :w]
 
         return work.clamp(0.0, 1.0)
 
