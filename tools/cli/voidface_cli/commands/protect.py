@@ -283,6 +283,18 @@ def run(args: argparse.Namespace) -> int:  # noqa: PLR0911
         )
         return 2
 
+    if (getattr(args, "iris_boost", False)
+            and args.use_generator is not None
+            and args.refine_steps <= 0):
+        log.warn(
+            "iris_boost.ignored_on_generator_fast_path",
+            hint=(
+                "--iris-boost is a PGD-time budget adjustment; the pure "
+                "--use-generator fast path has no PGD loop. Add "
+                "--refine-steps N to enable iris boost during refinement."
+            ),
+        )
+
     device = resolve_device(args.device)
     log.info("device.selected", device=str(device))
 
