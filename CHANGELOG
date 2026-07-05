@@ -1,6 +1,53 @@
 Voidface changelog. Newest at the top. Time flows downward.
 
 
+Voidface 0.0.14 — 2026-07-05 — Phase R5.3a: face-image dataset pipeline
+
+    train_generator() from R5.2 accepted any batch iterator; this
+    commit lands the first concrete iterator that reads real face
+    crops off disk. Voidface deliberately does not bundle a dataset
+    — users point at their own FFHQ / CelebA-HQ / private-corpus
+    directory.
+
+    New:
+
+    * src/voidface/data/datasets.py — two exports:
+        - collect_image_paths(directory, recursive=True) — walks a
+          directory, returns a sorted list of every .png / .jpg /
+          .jpeg / .webp / .bmp file.
+        - FolderImageDataset(directory, resolution=256, augment=True,
+          recursive=True, seed=None) — torch.utils.data.Dataset. Each
+          __getitem__ returns a (3, H, W) float tensor in [0, 1] at
+          the requested resolution. Antialias bilinear resize. Random
+          horizontal flip when augment=True. Stable ordering across
+          instances so training runs are reproducible.
+
+    Tests:
+
+    * tests/unit/test_datasets.py — 6 tests:
+        - empty directory raises FileNotFoundError,
+        - non-directory input raises NotADirectoryError,
+        - iteration order is stable across instances of the same
+          directory,
+        - each item has shape (3, R, R), float32, [0, 1] range,
+        - integrates with torch.utils.data.DataLoader (batches to
+          the expected (B, 3, R, R) shape),
+        - augment=True actually flips images sometimes (verified with
+          a horizontally-asymmetric checker pattern).
+    * Suite is 69 tests, all passing.
+
+    What R5.3a explicitly does NOT ship (later):
+
+    * Automatic FFHQ / CelebA-HQ download (out of scope — those
+      datasets have their own licenses and consent-of-subjects issues).
+    * Face-region cropping / alignment as part of the loader. The R4
+      aligner does this on the fly during training when the GFPGAN
+      restorer is enabled; pre-cropped datasets can skip alignment
+      entirely.
+    * Multi-worker DataLoader tuning. Torch's default single-worker
+      loop is sufficient for R5.3 experimentation.
+
+
 Voidface 0.0.13 — 2026-07-05 — Phase R5.2: G training loop (system convergence)
 
     The whole system converges end-to-end. train_generator() reuses
