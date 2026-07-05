@@ -424,6 +424,16 @@ def _build_parser() -> argparse.ArgumentParser:
         ),
     )
     p_bench.add_argument(
+        "--targets",
+        type=str,
+        default="detector,recognizer",
+        help=(
+            "Comma-separated target subset for bench. Options: 'detector', "
+            "'recognizer'. Default 'detector,recognizer' runs both. Use a "
+            "subset for fast per-family measurement."
+        ),
+    )
+    p_bench.add_argument(
         "--baseline",
         type=Path,
         default=None,
@@ -1603,10 +1613,33 @@ def _cmd_bench(args: argparse.Namespace) -> int:
     dataset = FolderImageDataset(args.images, resolution=args.resolution, augment=False)
     log.info("dataset.loaded", size=len(dataset))
 
-    log.info("model.detector.loading", name="retinaface-r50")
-    detector = RetinaFace(device=device)
-    log.info("model.recognizer.loading", name="arcface-r100")
-    recognizer = Arcface(device=device)
+    bench_targets = {t.strip() for t in args.targets.split(",") if t.strip()}
+
+    class _Neutral(torch.nn.Module):
+        """Fallback used when a family is disabled — always reports full presence / identity."""
+
+        def forward(self, image):  # noqa: ANN001,ANN201
+            from voidface.models.base import TargetOutputs
+
+            n = image.size(0)
+            if "detector" in bench_targets:
+                return TargetOutputs(embedding=torch.ones(n, 4) / 2.0)
+            # Both families fall back to a neutral logits+embedding.
+            return TargetOutputs(
+                logits=torch.zeros(n, 1, 2),
+                embedding=torch.ones(n, 4) / 2.0,
+            )
+
+    if "detector" in bench_targets:
+        log.info("model.detector.loading", name="retinaface-r50")
+        detector = RetinaFace(device=device)
+    else:
+        detector = _Neutral()
+    if "recognizer" in bench_targets:
+        log.info("model.recognizer.loading", name="arcface-r100")
+        recognizer = Arcface(device=device)
+    else:
+        recognizer = _Neutral()
 
     from voidface.data.datasets import collect_image_paths
 
