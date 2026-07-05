@@ -1290,10 +1290,14 @@ def _cmd_train(args: argparse.Namespace) -> int:
 
     lpips_weight = float(percep_conf.get("lpips_weight", 0.10))
     lpips_fn = load_lpips(net="alex", device=device) if lpips_weight > 0 else None
+    loss_conf = config.get("loss", {})
     weights = LossWeights(
         targets=weights_targets,
         lpips=lpips_weight,
         total_variation=float(percep_conf.get("tv_weight", 0.01)),
+        bilevel_lpips=float(loss_conf.get("bilevel_lpips", 0.0)),
+        normalize_per_target=bool(loss_conf.get("normalize_per_target", False)),
+        normalization_ema_decay=float(loss_conf.get("normalization_ema_decay", 0.99)),
     )
     composite = CompositeLoss(
         weights=weights,

@@ -22,6 +22,23 @@ alpha_den = 255
 steps = 300
 momentum = 0.9
 
+[loss]
+# Adversarial LPIPS between restorer(clean) and restorer(perturbed).
+# MAXIMIZED (enters loss with negative sign) — a delta that survives
+# restoration produces a large perceptual gap between the restored
+# clean and restored adversarial. Only active with non-identity
+# restorers. Small so it complements rather than dominates the
+# ensemble adversarial signal.
+bilevel_lpips = 0.05
+
+# When true, each per-target loss is divided by an EMA of its own
+# magnitude before weighting so terms at wildly different scales
+# (e.g. VAE ~50 vs detector ~0.05) all contribute proportionally to
+# their configured weight. Off by default (backward compat with the
+# hand-tuned weights above).
+normalize_per_target = true
+normalization_ema_decay = 0.99
+
 [loss.perceptual]
 lpips_weight = 0.10
 lpips_max = 0.05
