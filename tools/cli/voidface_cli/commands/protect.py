@@ -231,7 +231,7 @@ def _protect_via_generator(args: argparse.Namespace, clean: torch.Tensor, log: A
     return 0
 
 
-def run(args: argparse.Namespace) -> int:  # noqa: C901, PLR0911, PLR0912, PLR0915
+def run(args: argparse.Namespace) -> int:  # noqa: PLR0911
     """Main entry point for `voidface protect`.
 
     Many return branches are validation short-circuits (R7.86-R7.110);

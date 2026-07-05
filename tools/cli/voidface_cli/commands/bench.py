@@ -21,7 +21,7 @@ from voidface.util.log import configure_logging, get_logger
 from voidface_cli.common import resolve_device
 
 
-def run(args: argparse.Namespace) -> int:  # noqa: C901, PLR0911, PLR0912, PLR0915
+def run(args: argparse.Namespace) -> int:  # noqa: PLR0911
     """Benchmark a trained generator against a folder of test images.
 
     Many return branches are validation short-circuits (R7.105/R7.113/R7.116);
