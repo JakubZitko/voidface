@@ -62,16 +62,33 @@ Export:
 - :func:`voidface.export.ort.convert_onnx_to_ort` — ORT-Web format for
   the browser demo.
 
-CLI:
+CLI (9 subcommands as of R7.10):
 
-- `voidface protect <image>` — per-image PGD (the original R1 tool).
+- `voidface protect <image>` — per-image PGD OR --use-generator fast
+  path OR --face-mask restricted OR batch mode via `<dir> --output-dir`.
+  --semantic-warp composes the geometric attack on top; --refine-steps
+  N warm-starts PGD from G's output for hybrid quality.
+- `voidface protect-video <in.mp4> <out.mp4>` — per-frame G with
+  --temporal-blend Farnebäck-flow warping and --face-mask.
 - `voidface report <original> <protected>` — PSNR / SSIM / L-inf.
-- `voidface train <config.toml>` — full training run.
-- `voidface export <ckpt> <out.onnx> [--quantize int8|uint8]
-  [--coreml] [--ort]` — every deploy artifact.
+- `voidface train <config.toml>` — full training run; TOML shape covers
+  [experiment] / [data] / [optim] / [loss] / [loss.perceptual] /
+  [eot] / [targets.*] / [restorers].
+- `voidface bench <ckpt> <images/>` — release-gate metrics with
+  --json (machine-readable), --out-dir (save protected images),
+  --limit N (cap), --baseline JSON (A/B against a previous run).
+- `voidface export <ckpt> <out.onnx>` — --quantize int8|uint8 (dynamic),
+  --quantize-static-dir CAL (static, verified parity), --coreml, --ort.
+- `voidface package <ckpt> <out-dir/>` — one command for a full
+  release bundle (ONNX + int8 + static-int8 + ORT + optional CoreML +
+  CHECKSUMS.sha256 + MANIFEST.json + README).
+- `voidface info <ckpt>` — checkpoint metadata (config, params,
+  training step) with --json.
+- `voidface config-check <cfg.toml>` — validate a training config
+  without waiting for weight downloads to surface a typo.
 
-Tests: **89 unit tests passing**, 1 CoreML test correctly skipped on
-non-Apple-Silicon.
+Tests: **147 unit + integration tests passing**, 1 CoreML test
+correctly skipped on non-Apple-Silicon.
 
 ---
 
@@ -80,18 +97,44 @@ non-Apple-Silicon.
 - **Trained weight release.** The training system works; a real
   training run against a real face corpus on cloud GPUs is R5.5 and
   produces the checkpoint we distribute.
-- **Static-calibrated int8 quantization.** Dynamic quant produces a
-  smaller ONNX file but has op-support gaps at inference. Static
-  quant with a calibration corpus is planned.
 - **MPS gradient checkpointing for GFPGAN.** R4 CEO critic requested
   it as insurance against MPS OOM at 512×512. Skipped this session
   because Intel Mac has no MPS to validate against.
 - **Desktop app** (`tools/desktop/`, Tauri). Placeholder README only.
-- **Browser demo** (`tools/web/`). Placeholder README only. The ORT
-  artifact it needs is now producible.
+- **Browser demo** (`tools/web/`). Real Vite + TypeScript +
+  onnxruntime-web scaffold shipped in R6.1. Awaits a shipped `.ort`
+  from R5.5. Deployment story documented in
+  `Documentation/deployment/browser.md`.
 - **iOS wrapper**. Not yet scoped.
 - **Documented API stability.** Everything under `voidface.*` is
   pre-1.0; interfaces may change until R5.5 lands.
+
+**Attacks (research):**
+
+- Pixel PGD — R1, shipped.
+- Semantic geometric warp — R7.1 shipped standalone; R7.3 composed
+  into `run_pgd`. Sub-2-px displacement bounded, Gaussian-smoothed,
+  grid_sample-applied.
+- Iris attack — Documentation/attacks/iris.md scoped but not
+  implemented; requires landmark detection.
+
+**EOT (transform distribution during training):**
+
+- Bilinear resize — shipped.
+- Gaussian blur — shipped.
+- Differentiable JPEG (Reich et al 2024) — R6.14 shipped. Standard
+  luma/chroma quantization tables, STE round on quantize step.
+  Wired into the training TOML via `[eot].jpeg_qualities`.
+
+**Loss engineering:**
+
+- LPIPS perceptual constraint on `(clean, adversarial)` — R2, shipped.
+- Bilevel LPIPS on `(restorer(clean), restorer(adversarial))` — R4.5.2c-1
+  shipped. Maximized (negative weight). Wired via `[loss].bilevel_lpips`.
+- Per-target normalization via EMA — R5.5-follow shipped. Off by
+  default; enabled per training run via `[loss].normalize_per_target`.
+  Balances VAE terms (~50) against detector terms (~0.05).
+- Total variation smoothness prior — R2 shipped.
 
 ---
 
