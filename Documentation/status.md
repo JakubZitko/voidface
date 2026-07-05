@@ -100,8 +100,9 @@ Subcommand surface:
 - `voidface config-check <cfg.toml>` — validate a training config
   without waiting for weight downloads to surface a typo.
 
-Tests: **188 unit + integration tests passing**, 1 CoreML test
-correctly skipped on non-Apple-Silicon. Version 0.1.0 tagged.
+Tests: **269 unit + 3 integration tests passing**, 1 CoreML test
+correctly skipped on non-Apple-Silicon. Version 0.1.0 tagged
+(narrative 0.1.82 in commit trail).
 
 ---
 
