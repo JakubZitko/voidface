@@ -153,6 +153,14 @@ def _build_parser() -> argparse.ArgumentParser:
         default=None,
         help="Also emit a quantized <output>.<type>.onnx alongside the fp32 file.",
     )
+    p_export.add_argument(
+        "--coreml",
+        action="store_true",
+        help=(
+            "Also emit a CoreML .mlpackage next to <output>. Only works on Apple "
+            "Silicon macOS with coremltools installed."
+        ),
+    )
 
     return parser
 
@@ -419,6 +427,25 @@ def _cmd_export(args: argparse.Namespace) -> int:
             path=str(quantized_path),
             size_bytes=quantized_path.stat().st_size,
         )
+
+    if args.coreml:
+        try:
+            from voidface.export.coreml import export_generator_to_coreml
+        except ImportError as exc:
+            log.error("coreml.import_failed", error=str(exc))
+            return 3
+        coreml_path = args.output.with_suffix(".mlpackage")
+        log.info("coreml.exporting", path=str(coreml_path))
+        try:
+            export_generator_to_coreml(
+                generator, coreml_path, example_resolution=args.example_resolution
+            )
+        except RuntimeError as exc:
+            # CoreMlExportError is a RuntimeError; catches the
+            # "coremltools not installed" case cleanly.
+            log.error("coreml.export_failed", error=str(exc))
+            return 3
+        log.info("coreml.done", path=str(coreml_path))
 
     return 0
 
