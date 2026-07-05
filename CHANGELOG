@@ -29,6 +29,19 @@ Voidface 0.1.34 through 0.1.46 — 2026-07-05 — Phase R7.66 through R7.78
     Suite is 222 unit + 3 integration tests + 1 correctly-skipped
     Apple Silicon test. Session commit total: 134.
 
+    Follow-ons after R7.78:
+
+    * R7.79 CHANGELOG entry covering R7.66-R7.78.
+    * R7.80 voidface.attacks public API lock (4 tests) — asserts
+      __all__ matches the module's actual re-export set.
+    * R7.81 direct coverage for pick_top_landmarks (6 tests) —
+      threshold gate, top-anchor extraction, 640-to-input-pixel
+      rescaling, missing-aux/missing-logits None returns, batch
+      preservation.
+
+    Suite is 232 unit + 3 integration tests. Session commit
+    total: 137.
+
 
 Voidface 0.1.18 through 0.1.33 — 2026-07-05 — Phase R7.50 through R7.65
 
