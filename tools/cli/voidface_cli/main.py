@@ -323,6 +323,17 @@ def _build_parser() -> argparse.ArgumentParser:
             "warped prior with a fresh G contribution to track scene changes."
         ),
     )
+    p_pv.add_argument(
+        "--face-mask",
+        action="store_true",
+        help=(
+            "Restrict the perturbation to the detected face region on each "
+            "frame via a feathered mask (OpenCV Haar cascade). Cleaner "
+            "backgrounds; no adversarial noise on smooth walls or sky. "
+            "Combines with --temporal-blend so both the fresh delta and the "
+            "flow-warped delta are masked."
+        ),
+    )
 
     p_info = sub.add_parser(
         "info",
@@ -785,6 +796,8 @@ def _cmd_protect_video(args: argparse.Namespace) -> int:
     epsilon = args.epsilon / 255.0
     alpha = float(args.temporal_blend)
 
+    from voidface.util.facemask import face_region_mask
+
     def _protected_frames():  # noqa: ANN202
         prev_frame_cpu: torch.Tensor | None = None
         prev_delta_cpu: torch.Tensor | None = None
@@ -809,6 +822,10 @@ def _cmd_protect_video(args: argparse.Namespace) -> int:
                     flow = farneback_flow(prev_frame_cpu, frame)  # type: ignore[arg-type]
                     warped_prev = warp_forward(prev_delta_cpu, flow)
                     delta = alpha * warped_prev + (1.0 - alpha) * fresh_delta
+
+                if args.face_mask:
+                    mask = face_region_mask(frame)
+                    delta = delta * mask
 
                 delta = delta.clamp(-epsilon, +epsilon)
                 protected_frame = (frame + delta).clamp(0.0, 1.0)
