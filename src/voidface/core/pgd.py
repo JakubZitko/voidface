@@ -94,6 +94,8 @@ def run_pgd(
     config: PgdConfig,
     restorer_sampler: RestorerSampler | None = None,
     semantic_warp_max_pixels: float | None = None,
+    iris_mask: Tensor | None = None,
+    iris_epsilon_ratio: float = 2.0,
 ) -> PgdResult:
     """Run per-image PGD against the composite loss.
 
@@ -112,6 +114,18 @@ def run_pgd(
             displacement alongside the pixel delta. Adds
             :class:`voidface.attacks.semantic.SemanticWarp` on top of
             the standard pixel attack — the R7.1 semantic warp path.
+        iris_mask: Optional ``(N, 1, H, W)`` soft binary mask (see
+            :func:`voidface.attacks.iris.iris_region_mask`). When
+            provided, pixels inside the mask get a locally higher
+            L-infinity budget scaled by ``iris_epsilon_ratio``.
+            Humans do not perceive sub-millimeter iris texture
+            changes at ordinary viewing distance, so this is
+            budget the eye pays back to the attacker without
+            visual cost.
+        iris_epsilon_ratio: When ``iris_mask`` is set, the effective
+            epsilon inside the mask is ``config.epsilon *
+            iris_epsilon_ratio``. Default ``2.0`` matches the
+            design in ``Documentation/attacks/iris.md``.
 
     Returns:
         A :class:`PgdResult` containing the final perturbed image, the
@@ -131,10 +145,24 @@ def run_pgd(
     if config.seed is not None:
         generator.manual_seed(config.seed)
 
+    epsilon_map: Tensor | float = config.epsilon
+    if iris_mask is not None:
+        if iris_mask.dim() != 4 or iris_mask.shape[0] != clean.shape[0]:
+            msg = (
+                f"iris_mask must be (N, 1, H, W) matching clean batch; "
+                f"got {tuple(iris_mask.shape)} vs clean {tuple(clean.shape)}"
+            )
+            raise ValueError(msg)
+        boost = 1.0 + (float(iris_epsilon_ratio) - 1.0) * iris_mask.to(clean.device)
+        epsilon_map = config.epsilon * boost
+
     if getattr(config, "initial_delta", None) is not None:
         delta = config.initial_delta.detach().clone()  # type: ignore[union-attr]
         # Project the provided delta into the L-inf ball before optimizing.
-        delta = delta.clamp(-config.epsilon, +config.epsilon)
+        if isinstance(epsilon_map, Tensor):
+            delta = torch.clamp(delta, min=-epsilon_map, max=epsilon_map)
+        else:
+            delta = delta.clamp(-config.epsilon, +config.epsilon)
         delta = (clean + delta).clamp(0.0, 1.0) - clean
     else:
         delta = _init_delta(clean, config.epsilon, generator)
@@ -191,7 +219,10 @@ def run_pgd(
 
         with torch.no_grad():
             delta.sub_(config.alpha * step_direction)
-            delta.clamp_(-config.epsilon, +config.epsilon)
+            if isinstance(epsilon_map, Tensor):
+                delta.data = torch.clamp(delta.data, min=-epsilon_map, max=epsilon_map)
+            else:
+                delta.clamp_(-config.epsilon, +config.epsilon)
             # Ensure the projected image stays in [0, 1].
             delta.data = (clean + delta.data).clamp(0.0, 1.0) - clean
             if warp is not None and warp.field.grad is not None:
