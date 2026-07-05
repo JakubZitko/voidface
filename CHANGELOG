@@ -1,6 +1,35 @@
 Voidface changelog. Newest at the top. Time flows downward.
 
 
+Voidface 0.1.34 through 0.1.46 — 2026-07-05 — Phase R7.66 through R7.78
+
+    Third wave: iris attack end-to-end + CLI dispatch cleanup.
+
+    * R7.66 CHANGELOG covering R7.50-R7.65.
+    * R7.67 direct tests for _parse_restorer_spec (9 cases).
+    * R7.68 direct tests for _write_output_json (5 cases).
+    * R7.69 README USAGE expansion (fast path, batch, video, ship
+      gate, package + verify workflow).
+    * R7.70 main() dispatch table + PLC0415 per-file ignore.
+    * R7.71 dispatch-completeness guard test (2 cases).
+    * R7.72 contributing.md "Adding a new CLI subcommand" recipe.
+    * R7.73 release.md "Beyond 0.2.0 — ensemble growth roadmap".
+    * R7.74 src/voidface/attacks/iris.py::iris_region_mask +
+      8 direct tests. First real code under attacks/iris.
+    * R7.75 run_pgd(iris_mask, iris_epsilon_ratio) integration +
+      3 integration tests.
+    * R7.76 Documentation/attacks/iris.md moves from "R3
+      documented" to "R7.74/R7.75 ships".
+    * R7.77 voidface protect --iris-boost / --iris-ratio CLI
+      flags + pick_top_landmarks promoted to public API in
+      voidface.models.restorers.gfpgan + 4 CLI parser tests.
+    * R7.78 status.md + glossary.md track the iris attack out
+      of "not shipping" and into the shipped set.
+
+    Suite is 222 unit + 3 integration tests + 1 correctly-skipped
+    Apple Silicon test. Session commit total: 134.
+
+
 Voidface 0.1.18 through 0.1.33 — 2026-07-05 — Phase R7.50 through R7.65
 
     Second wave of same-session polish and CLI refactor.
