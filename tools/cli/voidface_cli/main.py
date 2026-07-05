@@ -734,11 +734,19 @@ def _cmd_protect(args: argparse.Namespace) -> int:
     )
     log.info("pgd.done", final=round(result.history[-1].total_loss, 4))
 
+    adversarial = result.adversarial
+    if args.face_mask:
+        from voidface.util.facemask import face_region_mask
+
+        mask = face_region_mask(clean.squeeze(0)).to(device=clean.device)
+        delta = adversarial - clean
+        adversarial = (clean + delta * mask.unsqueeze(0)).clamp(0.0, 1.0)
+
     output = args.output or args.image.with_suffix(".protected.png")
-    save_image(result.adversarial.squeeze(0), output)
+    save_image(adversarial.squeeze(0), output)
     log.info("image.saved", path=str(output))
 
-    _print_summary(clean=clean, adversarial=result.adversarial, output=output)
+    _print_summary(clean=clean, adversarial=adversarial, output=output)
     return 0
 
 
