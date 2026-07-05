@@ -141,7 +141,7 @@ def _write_output_json(
     args.output_json.write_text(json.dumps(metadata, indent=2))
 
 
-def _protect_batch(args: argparse.Namespace, device: object, log: Any) -> int:
+def _protect_batch(args: argparse.Namespace, device: torch.device, log: Any) -> int:
     """Process every image in a directory, writing outputs to --output-dir.
 
     Batch mode currently requires --use-generator — running per-image
@@ -350,8 +350,8 @@ def run(args: argparse.Namespace) -> int:  # noqa: PLR0911
     log.info("targets.selected", targets=sorted(selected))
     log.info("restorers.selected", spec=restorer_spec)
 
-    target_losses: dict = {}
-    target_static_data: dict = {}
+    target_losses: dict[str, Any] = {}
+    target_static_data: dict[str, Any] = {}
     weights_targets: dict[str, float] = {}
 
     if "detector" in selected:
@@ -437,7 +437,7 @@ def run(args: argparse.Namespace) -> int:  # noqa: PLR0911
         initial_delta=warm_start_delta,
     )
 
-    restorer_options: list = []
+    restorer_options: list[tuple[Any, float]] = []
     for name, weight in restorer_spec:
         if name == "identity":
             restorer_options.append((IdentityRestorer(), weight))

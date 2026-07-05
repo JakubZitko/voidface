@@ -38,12 +38,12 @@ from voidface_cli.common import renormalize_weights, resolve_device
 def _build_targets(
     targets_conf: dict[str, Any],
     generator_input: torch.Tensor,
-    device: object,
+    device: torch.device,
     log: Any,
-) -> tuple[dict, dict, dict[str, float], Any, Any]:
+) -> tuple[dict[str, Any], dict[str, Any], dict[str, float], Any, Any]:
     """Assemble target_losses + target_static_data + weights for train_generator."""
-    target_losses: dict = {}
-    target_static_data: dict = {}
+    target_losses: dict[str, Any] = {}
+    target_static_data: dict[str, Any] = {}
     weights_targets: dict[str, float] = {}
     vae = None
     sdxl_vae = None
@@ -195,7 +195,7 @@ def run(args: argparse.Namespace) -> int:
         jpeg_qualities=eot._config.jpeg_qualities,
     )
 
-    restorer_options: list = []
+    restorer_options: list[tuple[Any, float]] = []
     for name, weight in restorers_conf.items():
         w = float(weight)
         if w <= 0.0:
