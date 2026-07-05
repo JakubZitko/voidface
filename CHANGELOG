@@ -90,6 +90,16 @@ Voidface 0.1.47 through 0.1.57 — 2026-07-05 — Phase R7.79 through R7.89
 
     Session commit total: 162. Suite: 258 unit + 3 integration.
 
+    R7.108-R7.110 protect input validation sweep:
+
+    * R7.108 --semantic-warp < 0 -> exit code 2.
+    * R7.109 --epsilon out of [1, 255] -> exit code 2.
+    * R7.110 --steps < 1 and --refine-steps < 0 -> exit code 2.
+
+    Session commit total: 166. Suite: 262 unit + 3 integration.
+    Nonsensical inputs to every documented protect flag now fail
+    early with a structured error, never with a traceback.
+
 
 Voidface 0.1.34 through 0.1.46 — 2026-07-05 — Phase R7.66 through R7.78
 
