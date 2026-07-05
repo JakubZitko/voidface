@@ -59,8 +59,10 @@ def save_image(tensor: Tensor, path: Path) -> None:
 
     Args:
         tensor: A tensor of shape ``(3, H, W)`` or ``(1, 3, H, W)``.
-        path: The output filesystem path.
+        path: The output filesystem path. The parent directory is
+            created if it does not already exist.
     """
+    path.parent.mkdir(parents=True, exist_ok=True)
     tensor_to_pil(tensor).save(path)
 
 
