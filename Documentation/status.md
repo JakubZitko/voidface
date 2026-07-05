@@ -87,8 +87,8 @@ CLI (9 subcommands as of R7.10):
 - `voidface config-check <cfg.toml>` — validate a training config
   without waiting for weight downloads to surface a typo.
 
-Tests: **147 unit + integration tests passing**, 1 CoreML test
-correctly skipped on non-Apple-Silicon.
+Tests: **188 unit + integration tests passing**, 1 CoreML test
+correctly skipped on non-Apple-Silicon. Version 0.1.0 tagged.
 
 ---
 
