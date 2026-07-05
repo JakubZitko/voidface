@@ -108,6 +108,14 @@ def run(args: argparse.Namespace) -> int:
     configure_logging(level="DEBUG" if args.verbose else "INFO")
     log = get_logger("voidface.cli.train")
 
+    if not args.config.exists():
+        log.error(
+            "config.not_found",
+            path=str(args.config),
+            hint="produce one with `voidface init full -o cfg.toml`",
+        )
+        return 2
+
     config = load_config(args.config)
     device = resolve_device(args.device)
     log.info("device.selected", device=str(device))

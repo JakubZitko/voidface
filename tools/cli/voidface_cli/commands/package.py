@@ -25,6 +25,14 @@ def run(args: argparse.Namespace) -> int:
     configure_logging(level="INFO")
     log = get_logger("voidface.cli.package")
 
+    if not args.checkpoint.exists():
+        log.error(
+            "checkpoint.not_found",
+            path=str(args.checkpoint),
+            hint="produce one with `voidface train cfg.toml` or download a release .pt",
+        )
+        return 2
+
     args.output_dir.mkdir(parents=True, exist_ok=True)
     log.info("package.start", output_dir=str(args.output_dir))
 

@@ -19,6 +19,14 @@ def run(args: argparse.Namespace) -> int:
     configure_logging(level="INFO")
     log = get_logger("voidface.cli.export")
 
+    if not args.checkpoint.exists():
+        log.error(
+            "checkpoint.not_found",
+            path=str(args.checkpoint),
+            hint="produce one with `voidface train cfg.toml` or download a release .pt",
+        )
+        return 2
+
     log.info("checkpoint.loading", path=str(args.checkpoint))
     payload = torch.load(args.checkpoint, map_location="cpu", weights_only=False)
     if isinstance(payload, dict) and "state_dict" in payload:

@@ -23,6 +23,21 @@ def run(args: argparse.Namespace) -> int:
     log = get_logger("voidface.cli.protect-video")
     device = resolve_device(args.device)
 
+    if not args.use_generator.exists():
+        log.error(
+            "generator.checkpoint.not_found",
+            path=str(args.use_generator),
+            hint="produce one with `voidface train cfg.toml` or download a release .pt",
+        )
+        return 2
+    if not args.input.exists():
+        log.error(
+            "video.input.not_found",
+            path=str(args.input),
+            hint="point --input at a real video file",
+        )
+        return 2
+
     generator, config = load_generator_checkpoint(args.use_generator, device, log)
     metadata, frames = iter_frames(args.input)
     log.info(
