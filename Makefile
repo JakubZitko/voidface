@@ -37,6 +37,7 @@ install:
 lint:
 	$(RUFF) check src/ tools/ tests/ scripts/
 	$(MYPY) src/voidface
+	$(MYPY) tools/cli/voidface_cli
 
 .PHONY: format
 format:
