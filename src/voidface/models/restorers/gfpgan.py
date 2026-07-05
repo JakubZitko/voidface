@@ -45,6 +45,11 @@ __all__ = ["GfpganRestorer"]
 _OUT_SIZE = 512
 _MODEL_ID = "TencentARC/GFPGANv1"
 _WEIGHTS_FILENAME = "GFPGANv1.4.pth"
+# Pinned SHA-256 of the upstream GFPGANv1.4.pth release. When None,
+# the gate warns but proceeds — used during bring-up before the real
+# hash has been captured out-of-band. R5 flips this to a real hash
+# and self-hosts under a Voidface HF org.
+_WEIGHTS_SHA256: str | None = None
 
 
 class GfpganRestorer:
@@ -165,9 +170,14 @@ def _pick_top_landmarks(
 
 def _load_gfpgan_v1_4_weights(model_id: str, device: torch.device):  # noqa: ANN202
     """Fetch and load GFPGAN v1.4 weights."""
+    from pathlib import Path
+
     from huggingface_hub import hf_hub_download
 
-    weights_path = hf_hub_download(repo_id=model_id, filename=_WEIGHTS_FILENAME)
+    from voidface.util.checksum import verify_sha256
+
+    weights_path = Path(hf_hub_download(repo_id=model_id, filename=_WEIGHTS_FILENAME))
+    verify_sha256(weights_path, expected=_WEIGHTS_SHA256)
     raw = torch.load(weights_path, map_location=device, weights_only=False)
     state_dict = raw.get("params_ema", raw.get("state_dict", raw)) if isinstance(raw, dict) else raw
 
