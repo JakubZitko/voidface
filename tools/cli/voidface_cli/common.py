@@ -17,6 +17,7 @@ if TYPE_CHECKING:
     from pathlib import Path
 
     import torch
+    from torch import Tensor
 
     from voidface.generator.architecture import Voidface, VoidfaceConfig
 
@@ -128,13 +129,13 @@ def load_generator_checkpoint(
 
 
 def run_generator_and_save(
-    generator,
-    config,
-    clean,
+    generator: Voidface,
+    config: VoidfaceConfig,
+    clean: Tensor,
     output_path: Path,
     epsilon_int: int,
     face_mask: bool = False,
-):
+) -> Tensor:
     """Run G on ``clean``, apply optional face mask, save to disk.
 
     Extracted from _protect_via_generator so both single-image and
