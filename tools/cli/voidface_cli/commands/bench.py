@@ -42,6 +42,17 @@ def run(args: argparse.Namespace) -> int:
         )
         return 2
 
+    bench_targets = {t.strip() for t in args.targets.split(",") if t.strip()}
+    valid_bench_targets = {"detector", "recognizer"}
+    unknown = bench_targets - valid_bench_targets
+    if unknown:
+        log.error(
+            "bench.targets.unknown",
+            unknown=sorted(unknown),
+            allowed=sorted(valid_bench_targets),
+        )
+        return 2
+
     log.info("checkpoint.loading", path=str(args.checkpoint))
     payload = torch.load(args.checkpoint, map_location="cpu", weights_only=False)
     if isinstance(payload, dict) and "state_dict" in payload:
@@ -57,8 +68,6 @@ def run(args: argparse.Namespace) -> int:
     log.info("dataset.loading", directory=str(args.images), resolution=args.resolution)
     dataset = FolderImageDataset(args.images, resolution=args.resolution, augment=False)
     log.info("dataset.loaded", size=len(dataset))
-
-    bench_targets = {t.strip() for t in args.targets.split(",") if t.strip()}
 
     class _Neutral(torch.nn.Module):
         """Fallback used when a family is disabled — full presence / identity."""
