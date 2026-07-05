@@ -240,6 +240,18 @@ def _build_parser() -> argparse.ArgumentParser:
             "loop. Fast validation before committing to a long run."
         ),
     )
+    p_train.add_argument(
+        "--resume",
+        type=Path,
+        default=None,
+        metavar="CHECKPOINT",
+        help=(
+            "Load G's state_dict from CHECKPOINT before training starts. "
+            "Continues optimization from where the last run left off. The "
+            "checkpoint's VoidfaceConfig must match the config that would "
+            "be built from the training TOML (architecture-compatible)."
+        ),
+    )
 
     p_export = sub.add_parser(
         "export",
@@ -1762,6 +1774,16 @@ def _cmd_train(args: argparse.Namespace) -> int:
         "generator.built",
         params=sum(p.numel() for p in generator.parameters()),
     )
+    if args.resume is not None:
+        log.info("generator.resume", path=str(args.resume))
+        payload = torch.load(args.resume, map_location="cpu", weights_only=False)
+        state_dict = (
+            payload["state_dict"] if isinstance(payload, dict) and "state_dict" in payload
+            else payload
+        )
+        generator.load_state_dict(state_dict)
+        resumed_step = payload.get("step") if isinstance(payload, dict) else None
+        log.info("generator.resumed", from_step=resumed_step)
 
     target_losses, target_static_data, weights_targets, vae, sdxl_vae = _build_targets(
         targets_conf, generator_input=next(iter(loader))[:1], device=device, log=log
