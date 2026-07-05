@@ -231,6 +231,15 @@ def _build_parser() -> argparse.ArgumentParser:
         help="Torch device: 'auto', 'cpu', 'cuda', 'mps' (default auto).",
     )
     p_train.add_argument("--verbose", action="store_true", help="Log every step.")
+    p_train.add_argument(
+        "--dry-run",
+        action="store_true",
+        help=(
+            "Load the dataset and every target model and print a summary "
+            "of the resolved configuration, but skip the actual training "
+            "loop. Fast validation before committing to a long run."
+        ),
+    )
 
     p_export = sub.add_parser(
         "export",
@@ -1851,7 +1860,27 @@ def _cmd_train(args: argparse.Namespace) -> int:
         steps=train_config.steps,
         batch_size=batch_size,
         targets=sorted(weights_targets),
+        restorers=restorer_sampler.probabilities(),
     )
+
+    if args.dry_run:
+        print("--- dry run ---")
+        print(f"config:          {args.config}")
+        print(f"dataset:         {dataset_dir}  ({len(dataset)} images)")
+        print(f"resolution:      {resolution}  batch: {batch_size}")
+        print(f"generator params:{sum(p.numel() for p in generator.parameters()):,}")
+        print(f"targets:         {sorted(weights_targets)}")
+        print(f"restorer mix:    {restorer_sampler.probabilities()}")
+        print(f"steps planned:   {train_config.steps}")
+        print(f"lr:              {train_config.learning_rate}")
+        print(f"lpips weight:    {lpips_weight}")
+        print(f"bilevel LPIPS:   {weights.bilevel_lpips}")
+        print(f"normalize:       {weights.normalize_per_target}")
+        print(f"eot samples:     {eot._config.samples}")
+        print(f"jpeg qualities:  {list(eot._config.jpeg_qualities)}")
+        print("Dry run complete — no training steps executed.")
+        return 0
+
     result = train_generator(
         generator=generator,
         batches=loader,
