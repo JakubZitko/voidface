@@ -1,6 +1,23 @@
 Voidface changelog. Newest at the top. Time flows downward.
 
 
+Voidface 0.1.1 through 0.1.11 — 2026-07-05 — Phase R7.36 through R7.44 polish
+
+    Continued after 0.1.0. Small-but-real additions:
+
+    * R7.36 `voidface verify` release-bundle integrity check.
+    * R7.37 --timing phase breakdown on protect.
+    * R7.38 full-pipeline integration expanded to package/verify/info.
+    * R7.39 Documentation/deployment/desktop.md.
+    * R7.40 Documentation/deployment/ios.md.
+    * R7.41 tools/ios/ placeholder + tools/desktop/ README refresh.
+    * R7.42 --quiet mode on protect.
+    * R7.43 `voidface bench --targets detector,recognizer` subset.
+    * R7.44 Documentation/process/release.md maintainer runbook.
+
+    Suite is 176 tests + 1 correctly-skipped Apple Silicon test.
+
+
 Voidface 0.1.0 — 2026-07-05 — First real semver
 
     R7.34 marks the end of the 0.0.x build session with a real
