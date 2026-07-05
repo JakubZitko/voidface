@@ -1215,7 +1215,23 @@ def _cmd_train(args: argparse.Namespace) -> int:
         lpips=lpips_fn,
     )
 
-    eot = EotSampler(EotConfig(samples=int(optim_conf.get("eot_samples", 2))))
+    eot_conf = config.get("eot", {})
+    eot = EotSampler(
+        EotConfig(
+            samples=int(eot_conf.get("k", optim_conf.get("eot_samples", 2))),
+            resize_factors=tuple(eot_conf.get("resize_factors", (0.75, 1.0, 1.5))),
+            gaussian_sigma=tuple(eot_conf.get("gaussian_sigma", (0.0, 0.5, 1.0))),
+            jpeg_qualities=tuple(int(q) for q in eot_conf.get("jpeg_qualities", ())),
+            seed=int(experiment.get("seed", 0)),
+        )
+    )
+    log.info(
+        "eot.configured",
+        samples=eot._config.samples,
+        resize_factors=eot._config.resize_factors,
+        gaussian_sigma=eot._config.gaussian_sigma,
+        jpeg_qualities=eot._config.jpeg_qualities,
+    )
 
     restorer_options: list = []
     for name, weight in restorers_conf.items():
