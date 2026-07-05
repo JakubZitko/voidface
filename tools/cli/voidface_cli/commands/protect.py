@@ -165,6 +165,16 @@ def _protect_batch(args: argparse.Namespace, device: object, log: Any) -> int:
 
     args.output_dir.mkdir(parents=True, exist_ok=True)
     paths = collect_image_paths(args.image, recursive=args.recursive)
+    if not paths:
+        log.error(
+            "batch.no_images_found",
+            path=str(args.image),
+            hint=(
+                "batch mode expects .png/.jpg/.jpeg/.webp files in the input "
+                "directory; pass --recursive to walk subdirectories"
+            ),
+        )
+        return 2
     log.info("batch.starting", count=len(paths), output_dir=str(args.output_dir))
 
     generator, config = load_generator_checkpoint(args.use_generator, device, log)
