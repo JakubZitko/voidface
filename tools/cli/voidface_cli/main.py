@@ -625,13 +625,43 @@ def _cmd_train(args: argparse.Namespace) -> int:
 
     eot = EotSampler(EotConfig(samples=int(optim_conf.get("eot_samples", 2))))
 
-    restorer_options = [
-        (IdentityRestorer(), float(restorers_conf.get("identity", 1.0)))
-    ]
-    for _name, _weight in restorers_conf.items():
-        pass  # sd15-vae / gfpgan sampler wiring lives in _cmd_protect; the R5.3 CLI
-        # train wrapper starts with identity-only for reproducibility. Follow-up
-        # R5.3c enables the full RestorerSampler mix.
+    restorer_options: list = []
+    for name, weight in restorers_conf.items():
+        w = float(weight)
+        if w <= 0.0:
+            continue
+        if name == "identity":
+            restorer_options.append((IdentityRestorer(), w))
+        elif name == "sd15-vae":
+            from voidface.models.restorers.sd_vae import Sd15VaeRestorer
+
+            if vae is None:
+                log.error("restorer.sd15_vae.requires_target",
+                          hint="enable [targets.vae] in the config")
+                return 2
+            restorer_options.append((Sd15VaeRestorer(encoder=vae), w))
+        elif name == "gfpgan":
+            from voidface.models.restorers.gfpgan import GfpganRestorer
+
+            gfpgan_detector = target_losses.get("detector", (None,))[0]
+            if gfpgan_detector is None:
+                from voidface.models.detectors.retinaface import RetinaFace as _R
+
+                log.info(
+                    "model.detector.loading",
+                    name="retinaface-r50",
+                    reason="gfpgan needs landmarks",
+                )
+                gfpgan_detector = _R(device=device)
+            restorer_options.append(
+                (GfpganRestorer(detector=gfpgan_detector, device=device), w)
+            )
+        else:
+            log.error("restorer.unknown", name=name)
+            return 2
+
+    if not restorer_options:
+        restorer_options.append((IdentityRestorer(), 1.0))
     restorer_sampler = RestorerSampler(restorer_options, SamplerConfig(seed=0))
 
     train_config = TrainConfig(

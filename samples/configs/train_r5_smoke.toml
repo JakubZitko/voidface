@@ -48,3 +48,11 @@ enabled = false
 
 [restorers]
 identity = 1.0
+# For a real run, the R4 CEO-critic-recommended mix pushes GFPGAN to
+# 0.6 so the generator learns to survive face restoration most of the
+# time:
+#   identity = 0.10
+#   "sd15-vae" = 0.30
+#   gfpgan   = 0.60
+# 'sd15-vae' requires [targets.vae].enabled = true.
+# 'gfpgan' auto-loads RetinaFace if [targets.detector] is disabled.
