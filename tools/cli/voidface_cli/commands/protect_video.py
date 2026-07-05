@@ -37,6 +37,20 @@ def run(args: argparse.Namespace) -> int:
             hint="point --input at a real video file",
         )
         return 2
+    if args.epsilon < 1 or args.epsilon > 255:
+        log.error(
+            "epsilon.out_of_range",
+            got=args.epsilon,
+            hint="--epsilon is expressed as N/255; use 1-255 (typical 8-16)",
+        )
+        return 2
+    if not 0.0 <= args.temporal_blend <= 1.0:
+        log.error(
+            "temporal_blend.out_of_range",
+            got=args.temporal_blend,
+            hint="--temporal-blend is a mixing ratio in [0.0, 1.0]",
+        )
+        return 2
 
     generator, config = load_generator_checkpoint(args.use_generator, device, log)
     metadata, frames = iter_frames(args.input)
