@@ -168,6 +168,19 @@ def _build_parser() -> argparse.ArgumentParser:
             "face is detected."
         ),
     )
+    p_protect.add_argument(
+        "--semantic-warp",
+        type=float,
+        default=None,
+        metavar="MAX_PIXELS",
+        help=(
+            "Compose a semantic geometric warp attack on top of the pixel "
+            "PGD. Bounded to MAX_PIXELS of sub-pixel displacement. Applied "
+            "via grid_sample; humans do not notice sub-2-px shifts but "
+            "restorers regenerate a different face. Ignored when "
+            "--use-generator is set."
+        ),
+    )
 
     p_report = sub.add_parser(
         "report",
@@ -541,6 +554,7 @@ def _cmd_protect(args: argparse.Namespace) -> int:
         eot=eot,
         config=pgd,
         restorer_sampler=restorer_sampler,
+        semantic_warp_max_pixels=args.semantic_warp,
     )
     log.info("pgd.done", final=round(result.history[-1].total_loss, 4))
 

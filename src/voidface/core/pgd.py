@@ -88,6 +88,7 @@ def run_pgd(
     eot: EotSampler,
     config: PgdConfig,
     restorer_sampler: RestorerSampler | None = None,
+    semantic_warp_max_pixels: float | None = None,
 ) -> PgdResult:
     """Run per-image PGD against the composite loss.
 
@@ -101,6 +102,11 @@ def run_pgd(
             ensemble target sees ``restorer(adversarial)``. When
             ``None`` the identity restorer is used every step (the
             same behavior as R1 and R2).
+        semantic_warp_max_pixels: When set, jointly optimize a
+            geometric warp field with maximum ``max_pixels`` sub-pixel
+            displacement alongside the pixel delta. Adds
+            :class:`voidface.attacks.semantic.SemanticWarp` on top of
+            the standard pixel attack — the R7.1 semantic warp path.
 
     Returns:
         A :class:`PgdResult` containing the final perturbed image, the
@@ -125,8 +131,34 @@ def run_pgd(
     momentum_buffer = torch.zeros_like(delta)
     history: list[PgdStep] = []
 
+    warp = None
+    warp_alpha = 0.0
+    if semantic_warp_max_pixels is not None and semantic_warp_max_pixels > 0.0:
+        from voidface.attacks.semantic import SemanticWarp, apply_semantic_warp
+
+        n, _, h, w = clean.shape
+        warp = SemanticWarp(
+            batch=n,
+            height=h,
+            width=w,
+            max_displacement_pixels=semantic_warp_max_pixels,
+            device=clean.device,
+        )
+        # Warp field step size is scaled to the warp budget so 1
+        # PGD step covers epsilon / 6 of the L-inf ball, same
+        # relationship as the pixel delta uses.
+        warp_alpha = semantic_warp_max_pixels / 6.0
+
     for step in range(config.steps):
-        eot_batch = eot.apply(_clip_image(clean + delta))
+        perturbed = _clip_image(clean + delta)
+        if warp is not None:
+            perturbed = apply_semantic_warp(
+                perturbed,
+                warp.field,
+                sigma_pixels=4.0,
+                max_displacement=semantic_warp_max_pixels,
+            )
+        eot_batch = eot.apply(perturbed)
         clean_repeat = clean.repeat(eot_batch.size(0) // clean.size(0), 1, 1, 1)
         restorer = restorer_sampler.sample() if restorer_sampler is not None else None
         loss_value, breakdown = composite_loss.compute(
@@ -135,6 +167,8 @@ def run_pgd(
 
         if delta.grad is not None:
             delta.grad.zero_()
+        if warp is not None and warp.field.grad is not None:
+            warp.field.grad.zero_()
         loss_value.backward()
         if delta.grad is None:
             msg = "PGD backprop produced no gradient on delta."
@@ -149,6 +183,9 @@ def run_pgd(
             delta.clamp_(-config.epsilon, +config.epsilon)
             # Ensure the projected image stays in [0, 1].
             delta.data = (clean + delta.data).clamp(0.0, 1.0) - clean
+            if warp is not None and warp.field.grad is not None:
+                warp.field.data.sub_(warp_alpha * warp.field.grad.sign())
+                warp.project()
 
         history.append(
             PgdStep(
@@ -173,6 +210,15 @@ def run_pgd(
 
     with torch.no_grad():
         adversarial = _clip_image(clean + delta.detach())
+        if warp is not None:
+            from voidface.attacks.semantic import apply_semantic_warp
+
+            adversarial = apply_semantic_warp(
+                adversarial,
+                warp.field.detach(),
+                sigma_pixels=4.0,
+                max_displacement=semantic_warp_max_pixels,
+            )
 
     return PgdResult(adversarial=adversarial, delta=delta.detach(), history=history)
 
