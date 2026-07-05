@@ -14,6 +14,14 @@ from voidface.util.image import load_image
 
 def run(args: argparse.Namespace) -> int:
     """Print PSNR / SSIM / L-inf between the original and protected images."""
+    for label, path in (("original", args.original), ("protected", args.protected)):
+        if not path.exists():
+            print(
+                f"error: {label} image not found: {path}",
+                file=sys.stderr,
+            )
+            return 2
+
     clean = load_image(args.original).unsqueeze(0)
     protected = load_image(args.protected).unsqueeze(0)
     if clean.shape != protected.shape:

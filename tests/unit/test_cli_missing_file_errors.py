@@ -86,3 +86,13 @@ def test_protect_video_missing_input(tmp_path: Path) -> None:
         "--use-generator", str(ckpt),
     ])
     assert rc == 2
+
+
+def test_report_missing_original(tmp_path: Path) -> None:
+    from voidface_cli.main import main
+
+    rc = main([
+        "report",
+        str(tmp_path / "ghost1.png"), str(tmp_path / "ghost2.png"),
+    ])
+    assert rc == 2
