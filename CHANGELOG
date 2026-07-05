@@ -38,6 +38,21 @@ Voidface 0.1.47 through 0.1.57 — 2026-07-05 — Phase R7.79 through R7.89
     Suite is 250 unit + 3 integration tests. Session commit
     total: 148.
 
+    Follow-ons after R7.92:
+
+    * R7.93 CHANGELOG entry for R7.90-R7.92.
+    * R7.94 voidface protect: empty batch dir is a real error
+      (2 tests). Prevents "silent-zero-output" when the input
+      folder contains no supported images.
+    * R7.95 FAQ mentions iris budget boost + --dump-iris-mask
+      diagnostic in the "max protection quality" recipe.
+    * R7.96 composed.md updated: iris budget boost added to the
+      attack-layer map, and the research-quality invocation
+      now includes --iris-boost.
+
+    Suite is 252 unit + 3 integration tests. Session commit
+    total: 152.
+
 
 Voidface 0.1.34 through 0.1.46 — 2026-07-05 — Phase R7.66 through R7.78
 
