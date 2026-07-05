@@ -51,6 +51,10 @@ class PgdConfig:
             recommended value is ``0.9``.
         log_every: Number of steps between log emissions. ``0`` silences.
         seed: If not ``None``, seed the delta initialization.
+        initial_delta: When provided, initialize the PGD delta from
+            this tensor instead of the uniform random init. Used by
+            the R7.4 --refine-steps path where PGD refines a trained
+            generator's output rather than starting from noise.
     """
 
     epsilon: float = 12.0 / 255.0
@@ -59,6 +63,7 @@ class PgdConfig:
     momentum: float = 0.9
     log_every: int = 25
     seed: int | None = None
+    initial_delta: Tensor | None = None
 
 
 @dataclass
@@ -126,7 +131,13 @@ def run_pgd(
     if config.seed is not None:
         generator.manual_seed(config.seed)
 
-    delta = _init_delta(clean, config.epsilon, generator)
+    if getattr(config, "initial_delta", None) is not None:
+        delta = config.initial_delta.detach().clone()  # type: ignore[union-attr]
+        # Project the provided delta into the L-inf ball before optimizing.
+        delta = delta.clamp(-config.epsilon, +config.epsilon)
+        delta = (clean + delta).clamp(0.0, 1.0) - clean
+    else:
+        delta = _init_delta(clean, config.epsilon, generator)
     delta.requires_grad_(True)
     momentum_buffer = torch.zeros_like(delta)
     history: list[PgdStep] = []

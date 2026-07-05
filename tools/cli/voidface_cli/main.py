@@ -178,7 +178,20 @@ def _build_parser() -> argparse.ArgumentParser:
             "PGD. Bounded to MAX_PIXELS of sub-pixel displacement. Applied "
             "via grid_sample; humans do not notice sub-2-px shifts but "
             "restorers regenerate a different face. Ignored when "
-            "--use-generator is set."
+            "--use-generator is set without --refine-steps."
+        ),
+    )
+    p_protect.add_argument(
+        "--refine-steps",
+        type=int,
+        default=0,
+        metavar="N",
+        help=(
+            "When used with --use-generator, initialize PGD from the "
+            "generator's output (rather than uniform noise) and run N "
+            "further PGD steps for higher-quality final output. Best of "
+            "both worlds: single-forward-pass warm start plus N-step "
+            "refinement. Requires the ensemble to be loaded (--targets)."
         ),
     )
 
@@ -406,9 +419,36 @@ def _cmd_protect(args: argparse.Namespace) -> int:
     clean = load_image(args.image).to(device).unsqueeze(0)
     log.info("image.loaded", shape=tuple(clean.shape))
 
-    # Deploy fast-path — skip PGD entirely.
-    if args.use_generator is not None:
+    # Deploy fast-path — skip PGD entirely when refine-steps is 0.
+    if args.use_generator is not None and args.refine_steps <= 0:
         return _protect_via_generator(args, clean, log)
+
+    # Hybrid path: warm-start PGD from G's output. Falls through to
+    # the standard PGD setup below, but the initial_delta is set
+    # from G rather than uniform noise. The rest of the PGD wiring
+    # (composite loss, ensemble, restorer sampler) runs normally.
+    warm_start_delta: object | None = None
+    if args.use_generator is not None and args.refine_steps > 0:
+        generator, config = _load_generator_checkpoint(args.use_generator, device, log)
+        divisor = 1 << config.num_stages
+        original_hw = clean.shape[-2:]
+        padded_h = (original_hw[0] + divisor - 1) // divisor * divisor
+        padded_w = (original_hw[1] + divisor - 1) // divisor * divisor
+        if (padded_h, padded_w) != original_hw:
+            import torch.nn.functional as F  # noqa: N812
+
+            clean_padded = F.pad(
+                clean,
+                (0, padded_w - original_hw[1], 0, padded_h - original_hw[0]),
+                mode="reflect",
+            )
+        else:
+            clean_padded = clean
+        with torch.no_grad():
+            adv_from_gen = generator(clean_padded, epsilon=args.epsilon / 255.0)
+        adv_from_gen = adv_from_gen[..., : original_hw[0], : original_hw[1]]
+        warm_start_delta = adv_from_gen - clean
+        log.info("pgd.warm_start", from_generator=str(args.use_generator))
 
     selected = {t.strip() for t in args.targets.split(",") if t.strip()}
     allowed = {"detector", "recognizer", "vae", "sdxl-vae", "openclip"}
@@ -506,13 +546,15 @@ def _cmd_protect(args: argparse.Namespace) -> int:
         lpips=lpips_fn,
     )
     eot = EotSampler(EotConfig(samples=2, seed=args.seed))
+    effective_steps = args.refine_steps if args.refine_steps > 0 else args.steps
     pgd = PgdConfig(
         epsilon=args.epsilon / 255.0,
         alpha=max(1, args.epsilon // 6) / 255.0,
-        steps=args.steps,
+        steps=effective_steps,
         momentum=0.9,
-        log_every=1 if args.verbose else max(1, args.steps // 5),
+        log_every=1 if args.verbose else max(1, effective_steps // 5),
         seed=args.seed,
+        initial_delta=warm_start_delta,
     )
 
     restorer_options = []
