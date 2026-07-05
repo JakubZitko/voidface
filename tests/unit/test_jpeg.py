@@ -70,3 +70,29 @@ def test_eot_with_jpeg_qualities() -> None:
     assert out.shape == (1, 3, 16, 16)
     # JPEG at quality 50 should visibly change the output.
     assert not torch.allclose(out, image, atol=1e-3)
+
+
+def test_low_quality_stress_still_finite() -> None:
+    """At quality 1 (worst case) the round-trip should still produce
+    finite tensor values — no NaN or Inf from the DCT/quant chain."""
+    torch.manual_seed(0)
+    image = torch.rand(1, 3, 32, 32)
+    reconstructed = differentiable_jpeg(image, quality=1)
+    assert torch.isfinite(reconstructed).all()
+    assert reconstructed.min() >= 0.0
+    assert reconstructed.max() <= 1.0
+
+
+def test_jpeg_batch_of_multiple_images() -> None:
+    """Sanity check that batch > 1 works correctly."""
+    torch.manual_seed(0)
+    images = torch.rand(3, 3, 16, 16)
+    reconstructed = differentiable_jpeg(images, quality=75)
+    assert reconstructed.shape == images.shape
+    # Batch elements should be processed independently — verify by
+    # running one at a time and comparing.
+    per_item = torch.stack([
+        differentiable_jpeg(images[i : i + 1], quality=75).squeeze(0)
+        for i in range(3)
+    ])
+    torch.testing.assert_close(reconstructed, per_item, atol=1e-5, rtol=1e-5)
