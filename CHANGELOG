@@ -1,6 +1,69 @@
 Voidface changelog. Newest at the top. Time flows downward.
 
 
+Voidface 0.0.8 — 2026-07-05 — Phase R4.5.1: vendored GFPGAN architecture (facexlib-free)
+
+    The vendoring half of the R4 headline. The GFPGANv1Clean and
+    StyleGAN2GeneratorClean architectures ship in-tree with the two
+    basicsr coupling points (ARCH_REGISTRY, default_init_weights)
+    shimmed inline. Zero new pip deps. The transitive
+    gfpgan -> basicsr -> facexlib -> numba chain that has blocked
+    every prior Python-3.12 attempt at a real face restorer is now
+    broken.
+
+    Vendored files:
+
+    * src/voidface/models/restorers/_gfpgan/__init__.py — package
+      docstring.
+    * src/voidface/models/restorers/_gfpgan/_basicsr_shims.py —
+      ARCH_REGISTRY no-op decorator and inlined default_init_weights
+      (Kaiming init for Conv2d and Linear, constant-1 for BatchNorm).
+      Sourced from BasicSR (Apache-2.0). Attribution preserved.
+    * src/voidface/models/restorers/_gfpgan/stylegan2_clean.py —
+      StyleGAN2GeneratorClean from GFPGAN (Apache-2.0). Only import
+      lines adjusted to point at _basicsr_shims. No functional
+      changes to the arch. State dicts from the upstream v1.4
+      release load bit-for-bit.
+    * src/voidface/models/restorers/_gfpgan/gfpgan_clean.py —
+      GFPGANv1Clean top-level network. Same treatment as above.
+    * LICENSES/Apache-2.0-gfpgan.txt — attribution + upstream URL.
+
+    Tests:
+
+    * tests/unit/test_gfpgan_arch_smoke.py — verifies the shims
+      import, StyleGAN2GeneratorClean instantiates at a small
+      out_size, and GFPGANv1Clean.forward returns
+      ``(image, out_rgbs)`` with the expected shapes at 64x64
+      resolution from random weights.
+    * Suite is 40 tests, all passing.
+
+    What R4.5.1 explicitly does NOT ship (deferred to R4.5.2):
+
+    * GfpganRestorer wrapper class that satisfies the Restorer
+      protocol. Weight download from the official v1.4 release
+      (348 MB torch pickle) with SHA-256 gate.
+    * The RetinaFace-landmark-based aligner that the CEO critic
+      flagged as mandatory ("off-distribution unaligned inputs
+      produce a gradient signal that does not reflect what the
+      attacker sees"). This lands as a dedicated aligner module
+      under data/align.py using the landmarks that R4.4's RetinaFace
+      wrapper already returns in TargetOutputs.aux.
+    * The bilevel LPIPS term LPIPS(gfpgan(x+delta), gfpgan(x_clean))
+      in the composite loss (CEO critic requirement).
+    * RestorerSampler mix adjustment to identity:0.10, sd15-vae:0.30,
+      gfpgan:0.60. Currently the default mix is identity:0.3,
+      sd15-vae:0.7; unchanged in this commit.
+    * MPS memory guard (gradient checkpointing over the eight
+      StyleGAN2 decoder blocks) — pre-decided per the CEO critic
+      but not yet wired.
+
+    Rationale for splitting R4.5 into two commits: the vendored code
+    is 692 LoC of correct, testable, dep-free architecture that
+    unblocks R4.5.2 without carrying the risk of the weight-load +
+    aligner + bilevel-loss integration in the same commit. R4.5.2
+    is the actual bilevel-headline commit; R4.5.1 makes it possible.
+
+
 Voidface 0.0.7 — 2026-07-05 — Phase R4.4: real RetinaFace-R50 + purge stand-ins
 
     The face-detector target moves from a Phase R1 MTCNN-PNet stand-in

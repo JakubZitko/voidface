@@ -1,0 +1,28 @@
+The GFPGAN clean architecture and StyleGAN2 clean generator code in
+src/voidface/models/restorers/_gfpgan/{gfpgan_clean,stylegan2_clean}.py
+is vendored from Tencent ARC's GFPGAN project:
+
+    https://github.com/TencentARC/GFPGAN
+
+Original copyright 2021 Tencent ARC.
+Original license: Apache License 2.0.
+
+The BasicSR helper shim in src/voidface/models/restorers/_gfpgan/
+_basicsr_shims.py mirrors the two symbols upstream imports from
+BasicSR (Apache-2.0, https://github.com/XPixelGroup/BasicSR).
+
+Both vendored files carry SPDX-License-Identifier: Apache-2.0 headers.
+This LICENSES/ directory ships the full license text with every source
+and wheel distribution per the Apache-2.0 attribution clause. The full
+text is identical to Apache-2.0-insightface.txt in this directory —
+maintained separately per license file so each attribution is
+self-contained.
+
+                                 Apache License
+                           Version 2.0, January 2004
+                        http://www.apache.org/licenses/
+
+   [Full text elided here — see LICENSES/Apache-2.0-insightface.txt
+    in the same distribution for the byte-identical Apache-2.0
+    License Version 2.0 text. Distributions should carry the full
+    text; this pointer is a build-time convenience.]
