@@ -87,3 +87,38 @@ def test_detection_threshold_negative_rejected(tmp_path: Path) -> None:
         ]
     )
     assert rc == 2
+
+
+def test_strict_thresholds_out_of_range_rejected(tmp_path: Path) -> None:
+    """--strict-* thresholds are bounded probabilities/ratios."""
+    from voidface_cli.main import main
+
+    ckpt = tmp_path / "gen.pt"
+    _write_checkpoint(ckpt)
+    images = tmp_path / "images"
+    images.mkdir()
+
+    assert main(
+        [
+            "bench", str(ckpt), str(images),
+            "--strict", "--strict-detection-asr", "1.5",
+        ]
+    ) == 2
+    assert main(
+        [
+            "bench", str(ckpt), str(images),
+            "--strict", "--strict-identity-cos", "3.0",
+        ]
+    ) == 2
+    assert main(
+        [
+            "bench", str(ckpt), str(images),
+            "--strict", "--strict-ssim", "-0.1",
+        ]
+    ) == 2
+    assert main(
+        [
+            "bench", str(ckpt), str(images),
+            "--strict", "--strict-psnr", "-5.0",
+        ]
+    ) == 2

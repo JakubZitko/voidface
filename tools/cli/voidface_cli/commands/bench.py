@@ -74,6 +74,35 @@ def run(args: argparse.Namespace) -> int:
             hint="--detection-threshold is a probability in [0.0, 1.0]",
         )
         return 2
+    if args.strict:
+        if not 0.0 <= args.strict_detection_asr <= 1.0:
+            log.error(
+                "strict_detection_asr.out_of_range",
+                got=args.strict_detection_asr,
+                hint="--strict-detection-asr is a ratio in [0.0, 1.0]",
+            )
+            return 2
+        if not 0.0 <= args.strict_identity_cos <= 2.0:
+            log.error(
+                "strict_identity_cos.out_of_range",
+                got=args.strict_identity_cos,
+                hint="--strict-identity-cos is cos+1 in [0.0, 2.0]",
+            )
+            return 2
+        if args.strict_psnr < 0.0:
+            log.error(
+                "strict_psnr.negative",
+                got=args.strict_psnr,
+                hint="--strict-psnr is a dB value; keep it positive",
+            )
+            return 2
+        if not 0.0 <= args.strict_ssim <= 1.0:
+            log.error(
+                "strict_ssim.out_of_range",
+                got=args.strict_ssim,
+                hint="--strict-ssim is a similarity ratio in [0.0, 1.0]",
+            )
+            return 2
 
     log.info("checkpoint.loading", path=str(args.checkpoint))
     payload = torch.load(args.checkpoint, map_location="cpu", weights_only=False)
