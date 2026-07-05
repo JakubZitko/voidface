@@ -445,6 +445,43 @@ def _build_parser() -> argparse.ArgumentParser:
             "rise; PSNR/SSIM must not fall)."
         ),
     )
+    p_bench.add_argument(
+        "--strict",
+        action="store_true",
+        default=False,
+        help=(
+            "Enforce the release ship gate defined in "
+            "Documentation/process/release.md: detection ASR >= 0.60, "
+            "identity cos+1 <= 0.20, PSNR mean >= 30 dB, SSIM mean >= "
+            "0.92. Exits with code 3 if any threshold fails. Overridable "
+            "per-metric via --strict-detection-asr / "
+            "--strict-identity-cos / --strict-psnr / --strict-ssim."
+        ),
+    )
+    p_bench.add_argument(
+        "--strict-detection-asr",
+        type=float,
+        default=0.60,
+        help="Ship-gate threshold for detection ASR (default 0.60).",
+    )
+    p_bench.add_argument(
+        "--strict-identity-cos",
+        type=float,
+        default=0.20,
+        help="Ship-gate threshold for identity cos+1 upper bound (default 0.20).",
+    )
+    p_bench.add_argument(
+        "--strict-psnr",
+        type=float,
+        default=30.0,
+        help="Ship-gate threshold for mean PSNR in dB (default 30.0).",
+    )
+    p_bench.add_argument(
+        "--strict-ssim",
+        type=float,
+        default=0.92,
+        help="Ship-gate threshold for mean SSIM (default 0.92).",
+    )
 
     p_pv = sub.add_parser(
         "protect-video",
@@ -1740,6 +1777,30 @@ def _cmd_bench(args: argparse.Namespace) -> int:
             print("VERDICT: regression")
             return 1
         print("VERDICT: no regression")
+
+    if args.strict:
+        det_asr = summary.detection_asr(args.detection_threshold)
+        id_cos = summary.mean_identity_cosine_plus_one
+        psnr = summary.mean_psnr_db
+        ssim = summary.mean_ssim
+        print("--- ship gate ---")
+        gate_failures: list[str] = []
+        checks = (
+            ("detection_asr", det_asr, args.strict_detection_asr, ">="),
+            ("identity_cos_plus_one", id_cos, args.strict_identity_cos, "<="),
+            ("mean_psnr_db", psnr, args.strict_psnr, ">="),
+            ("mean_ssim", ssim, args.strict_ssim, ">="),
+        )
+        for name, actual, threshold, op in checks:
+            ok = actual >= threshold if op == ">=" else actual <= threshold
+            status = "PASS" if ok else "FAIL"
+            print(f"  {name:24s}  {actual:.4f}  {op}  {threshold:.4f}   {status}")
+            if not ok:
+                gate_failures.append(name)
+        if gate_failures:
+            print(f"VERDICT: ship gate FAILED on {', '.join(gate_failures)}")
+            return 3
+        print("VERDICT: ship gate PASS")
 
     return 0
 

@@ -49,6 +49,15 @@ Ship gate (working consensus):
     PSNR (mean)                 >= 30 dB
     SSIM (mean)                 >= 0.92
 
+Enforce automatically:
+
+    voidface bench <ckpt> ~/data/ffhq-test/ --limit 500 --strict
+
+Exits with code 3 if any threshold fails. Per-metric overrides are
+`--strict-detection-asr`, `--strict-identity-cos`, `--strict-psnr`,
+`--strict-ssim` — keep these tuned to the numbers above so the CLI
+and this runbook cannot drift apart.
+
 ---
 
 ## Step 3 — Package + verify
