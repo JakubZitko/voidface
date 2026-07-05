@@ -34,6 +34,17 @@ rejects any file lacking one. No exceptions.
   public API and nothing else. Real code lives in a subsystem.
 - **Python packages have `__init__.py`** with an explicit `__all__`. If
   it is not in `__all__`, it is private.
+- **Resource content goes in resource files.** Multi-line TOML / JSON /
+  YAML templates that live inside Python code as string constants
+  belong in a package subdirectory (see
+  `tools/cli/voidface_cli/init_presets/`) — they are easier to review,
+  diff, and edit as their own files.
+- **CLI subcommands: pragmatic exception.** `tools/cli/voidface_cli/
+  main.py` is currently over the 500-line guideline because argparse
+  wants its subcommand definitions co-located. When the file exceeds
+  ~2500 lines, split `_cmd_*` functions into
+  `voidface_cli/commands/<name>.py` and shared helpers into
+  `voidface_cli/common.py`.
 
 ---
 
