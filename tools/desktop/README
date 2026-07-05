@@ -1,0 +1,14 @@
+Voidface desktop app (Tauri) — scaffold placeholder.
+
+The desktop app is a Tauri 2.x shell around the shipped runtime under
+`../../runtime/`. It embeds:
+
+  - `../../runtime/coreml/` on macOS (Apple Neural Engine),
+  - `../../runtime/onnx/` on Windows and Linux (ONNX Runtime).
+
+The UI is drag-and-drop image or video, one Protect button, and a
+side-by-side before/after preview with PSNR / SSIM / LPIPS readouts.
+No accounts, no telemetry, all local.
+
+This directory is intentionally empty until Phase R5. See
+`../../Documentation/architecture.md`.

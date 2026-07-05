@@ -1,0 +1,119 @@
+
+                       List of maintainers and how to submit changes
+
+Please try to follow the guidelines below. This will make things easier on
+the maintainers. Not all of these guidelines matter for every trivial patch,
+so apply some common sense.
+
+    1. Always describe what your patch does and why.
+    2. Prefer smaller, focused patches over large omnibus changes.
+    3. Add a test alongside every non-trivial change.
+    4. Match the coding style described in Documentation/coding-style.md.
+    5. Sign off your commits (Signed-off-by:) if the change is non-trivial.
+    6. Route each patch to the maintainer(s) of the affected subsystem
+       (grep -w SUBSYSTEM MAINTAINERS to find them).
+
+Descriptions of section entries:
+
+    M: Maintainer's Full Name <address@domain>
+    R: Designated Reviewer <address@domain>
+    F: Files and directories wildcard patterns.
+    W: Web-page with status/info
+    T: SCM tree type and location.
+    S: Status, one of the following:
+         Supported    - Someone is paid to look after this.
+         Maintained   - Someone actively looks after this.
+         Odd Fixes    - Only very obvious fixes accepted.
+         Orphan       - No current maintainer, submissions welcome.
+
+-------------------------------------------------------------------------------
+
+VOIDFACE (general)
+M:      Voidface contributors <contributors@voidface.org>
+S:      Maintained
+T:      git https://github.com/voidface/voidface.git
+F:      README
+F:      COPYING
+F:      CHANGELOG
+F:      CREDITS
+F:      Makefile
+F:      pyproject.toml
+
+CORE TRAINING SUBSYSTEM
+S:      Maintained
+F:      src/voidface/core/
+F:      Documentation/training/
+
+MODEL ENSEMBLE — FACE DETECTORS
+S:      Maintained
+F:      src/voidface/models/detectors/
+F:      Documentation/models/detectors.md
+
+MODEL ENSEMBLE — IDENTITY RECOGNIZERS
+S:      Maintained
+F:      src/voidface/models/recognizers/
+F:      Documentation/models/recognizers.md
+
+MODEL ENSEMBLE — DIFFUSION VAEs
+S:      Maintained
+F:      src/voidface/models/vaes/
+F:      Documentation/models/vaes.md
+
+MODEL ENSEMBLE — CLIP-FAMILY ENCODERS
+S:      Maintained
+F:      src/voidface/models/clip/
+F:      Documentation/models/clip.md
+
+MODEL ENSEMBLE — FACE RESTORERS (bilevel target)
+S:      Maintained
+F:      src/voidface/models/restorers/
+F:      Documentation/models/restorers.md
+
+ATTACK TECHNIQUES
+S:      Maintained
+F:      src/voidface/attacks/
+F:      Documentation/attacks/
+
+GENERATOR (G — the shipped model)
+S:      Maintained
+F:      src/voidface/generator/
+F:      Documentation/models/generator.md
+
+DATA PIPELINE
+S:      Maintained
+F:      src/voidface/data/
+
+EVALUATION AND BENCHMARKS
+S:      Maintained
+F:      src/voidface/eval/
+F:      scripts/benchmark.py
+
+EXPORT (CoreML, ONNX)
+S:      Maintained
+F:      src/voidface/export/
+F:      Documentation/deployment/
+
+COMMAND-LINE TOOL
+S:      Maintained
+F:      tools/cli/
+
+DESKTOP APP (Tauri)
+S:      Maintained
+F:      tools/desktop/
+
+BROWSER DEMO
+S:      Maintained
+F:      tools/web/
+
+SHIPPED RUNTIMES
+S:      Maintained
+F:      runtime/
+
+BUILD / MAINTENANCE SCRIPTS
+S:      Maintained
+F:      scripts/
+F:      Makefile
+
+DOCUMENTATION
+S:      Maintained
+F:      Documentation/

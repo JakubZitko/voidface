@@ -1,0 +1,7 @@
+Voidface WASM/WebGPU runtime — placeholder.
+
+This directory holds an ONNX Runtime Web build (`voidface.ort`) and a
+tiny TypeScript wrapper for the browser demo. The `.ort` file is a
+converted, mobile-quantized version of `../onnx/voidface.onnx`.
+
+See `../../Documentation/deployment/onnx.md` for the export path.

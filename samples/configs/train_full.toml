@@ -1,0 +1,110 @@
+# SPDX-License-Identifier: MIT
+#
+# Full ensemble training config — reference for the eventual shipped G.
+# See Documentation/training/overview.md.
+
+[experiment]
+name = "full-ensemble"
+seed = 0
+output_dir = "runs/full-ensemble"
+
+[data]
+dataset = "ffhq"
+resolution = 512
+train_size = 200_000
+val_size = 2_000
+
+[optim]
+optimizer = "signed-pgd"
+epsilon = 12
+alpha_num = 2
+alpha_den = 255
+steps = 300
+momentum = 0.9
+
+[loss.perceptual]
+lpips_weight = 0.10
+lpips_max = 0.05
+ssim_min = 0.98
+psnr_min = 40.0
+tv_weight = 0.01
+
+# Detectors — 0.50 total
+[targets.retinaface]
+weight = 0.15
+enabled = true
+
+[targets.scrfd]
+weight = 0.15
+enabled = true
+
+[targets.yunet]
+weight = 0.10
+enabled = true
+
+[targets.mtcnn]
+weight = 0.10
+enabled = true
+
+# Recognizers — 1.00 total
+[targets.arcface]
+weight = 0.50
+enabled = true
+
+[targets.magface]
+weight = 0.25
+enabled = true
+
+[targets.adaface]
+weight = 0.25
+enabled = true
+
+# VAEs — 0.75 total
+[targets.sd15_vae]
+weight = 0.30
+enabled = true
+
+[targets.sdxl_vae]
+weight = 0.25
+enabled = true
+
+[targets.flux_vae]
+weight = 0.20
+enabled = true
+
+# CLIP-family — 0.50 total
+[targets.openclip_h]
+weight = 0.20
+enabled = true
+
+[targets.siglip_l]
+weight = 0.15
+enabled = true
+
+[targets.dinov2_l]
+weight = 0.15
+enabled = true
+
+# Restorers — bilevel target
+[targets.gfpgan]
+weight = 0.40
+enabled = true
+
+[targets.codeformer]
+weight = 0.35
+enabled = true
+
+[targets.realesrgan]
+weight = 0.25
+enabled = true
+
+[bilevel]
+restorer_sample_probability = { gfpgan = 0.30, codeformer = 0.25, realesrgan = 0.15, identity = 0.30 }
+
+[eot]
+k = 4
+jpeg_qualities = [40, 55, 70, 85, 95]
+resize_factors = [0.5, 0.75, 1.0, 1.5, 2.0]
+gaussian_sigma = [0.0, 0.5, 1.0, 1.5]
+screenshot_probability = 0.15
+webp_probability = 0.10

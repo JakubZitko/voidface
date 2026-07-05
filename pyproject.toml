@@ -1,0 +1,176 @@
+# SPDX-License-Identifier: MIT
+
+[project]
+name = "voidface"
+version = "0.0.1"
+description = "Adversarial face-region blindfold for photos and short videos."
+readme = "README"
+requires-python = ">=3.11"
+license = { file = "COPYING" }
+authors = [
+    { name = "Voidface contributors" },
+]
+keywords = [
+    "adversarial",
+    "cloaking",
+    "deepfake",
+    "face-swap",
+    "privacy",
+]
+classifiers = [
+    "Development Status :: 2 - Pre-Alpha",
+    "Intended Audience :: Developers",
+    "Intended Audience :: End Users/Desktop",
+    "License :: OSI Approved :: MIT License",
+    "Operating System :: OS Independent",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Topic :: Scientific/Engineering :: Artificial Intelligence",
+    "Topic :: Security",
+]
+
+dependencies = [
+    # Core numerics and imaging
+    "numpy>=1.26",
+    "pillow>=10.2",
+    # PyTorch and vision
+    "torch>=2.3",
+    "torchvision>=0.18",
+    # Config and logging
+    "tomli>=2.0; python_version<'3.11'",
+    "structlog>=24.1",
+    # Type stubs for numpy et al
+    "types-Pillow>=10.2",
+]
+
+[project.optional-dependencies]
+train = [
+    "einops>=0.7",
+    "lpips>=0.1.4",
+    "pytorch-msssim>=1.0",
+    "opencv-python-headless>=4.9",
+]
+export = [
+    "onnx>=1.16",
+    "onnxruntime>=1.19",
+    "coremltools>=8.0; platform_system=='Darwin'",
+]
+dev = [
+    "ruff>=0.5",
+    "mypy>=1.10",
+    "pytest>=8.2",
+    "pytest-cov>=5.0",
+    "hypothesis>=6.100",
+]
+all = [
+    "voidface[train,export,dev]",
+]
+
+[project.scripts]
+voidface = "voidface_cli.main:app"
+
+[project.urls]
+Repository = "https://github.com/voidface/voidface"
+Documentation = "https://github.com/voidface/voidface/tree/main/Documentation"
+Issues = "https://github.com/voidface/voidface/issues"
+
+[build-system]
+requires = ["hatchling>=1.24"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/voidface"]
+
+[tool.hatch.build.targets.sdist]
+include = [
+    "src/",
+    "include/",
+    "Documentation/",
+    "COPYING",
+    "CREDITS",
+    "CHANGELOG",
+    "MAINTAINERS",
+    "README",
+    "pyproject.toml",
+]
+
+# --- ruff ---------------------------------------------------------------------
+
+[tool.ruff]
+line-length = 100
+target-version = "py311"
+src = ["src", "tools", "tests"]
+
+[tool.ruff.lint]
+select = [
+    "E",   # pycodestyle errors
+    "W",   # pycodestyle warnings
+    "F",   # pyflakes
+    "I",   # isort
+    "N",   # pep8-naming
+    "UP",  # pyupgrade
+    "B",   # bugbear
+    "SIM", # simplify
+    "TCH", # type-checking imports
+    "RUF", # ruff-specific
+    "PL",  # pylint subset
+    "PT",  # pytest style
+    "D",   # pydocstyle
+]
+ignore = [
+    "D100",  # missing docstring in public module (module docstrings are in the code)
+    "D104",  # missing docstring in public package
+    "D203",  # 1 blank line required before class docstring (conflict with D211)
+    "D213",  # multi-line docstring summary should start at second line (D212 wins)
+    "PLR0913",  # too many arguments (ML code)
+]
+
+[tool.ruff.lint.pydocstyle]
+convention = "google"
+
+[tool.ruff.lint.per-file-ignores]
+"tests/**" = ["D"]
+"scripts/**" = ["D"]
+
+[tool.ruff.format]
+quote-style = "double"
+indent-style = "space"
+line-ending = "lf"
+docstring-code-format = true
+
+# --- mypy ---------------------------------------------------------------------
+
+[tool.mypy]
+python_version = "3.11"
+strict = true
+warn_unused_ignores = true
+warn_redundant_casts = true
+mypy_path = "include"
+files = ["src/voidface"]
+
+[[tool.mypy.overrides]]
+module = [
+    "cv2.*",
+    "lpips.*",
+    "coremltools.*",
+    "onnxruntime.*",
+    "einops.*",
+]
+ignore_missing_imports = true
+
+# --- pytest ------------------------------------------------------------------
+
+[tool.pytest.ini_options]
+minversion = "8.0"
+testpaths = ["tests"]
+addopts = [
+    "-ra",
+    "--strict-markers",
+    "--strict-config",
+]
+markers = [
+    "slow: tests that take more than a few seconds",
+    "gpu: tests that require a CUDA-capable GPU",
+    "network: tests that download files from the internet",
+]

@@ -1,0 +1,10 @@
+Voidface web demo — scaffold placeholder.
+
+The web demo is a static Vite + TypeScript app that loads the ONNX
+generator through `onnxruntime-web` with the WebGPU execution provider,
+runs entirely client-side (files never leave the tab), and offers a
+drag-and-drop UI.
+
+This directory is intentionally empty until Phase R5. See
+`../../Documentation/deployment/onnx.md` for the export path and
+`../../Documentation/architecture.md` for the shape of the release.

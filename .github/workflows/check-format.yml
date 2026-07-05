@@ -1,0 +1,29 @@
+# SPDX-License-Identifier: MIT
+#
+# Fast, format-only workflow that runs on every push regardless of
+# where it lands. Complements the full ci.yml which also runs the test
+# matrix.
+
+name: format
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  format:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v3
+
+      - name: Install ruff
+        run: uv tool install ruff
+
+      - name: Check formatting
+        run: uv tool run ruff format --check src/ tools/ tests/ scripts/
+
+      - name: Check lint
+        run: uv tool run ruff check src/ tools/ tests/ scripts/

@@ -1,0 +1,39 @@
+
+This is at least a partial list of people who have contributed to Voidface.
+It is sorted by name. Please add yourself in alphabetical order when you
+submit your first patch.
+
+    Voidface contributors
+        Initial repository scaffold; core training loop design;
+        adversarial-ensemble architecture.
+
+
+The following prior works materially shaped Voidface's design. We list them
+here in gratitude:
+
+    PhotoGuard                MIT CSAIL — encoder-attack framing.
+                              Salman, Ilyas, Madry et al., ICML 2023.
+
+    Fawkes / LowKey / Glaze   UChicago SAND Lab — the shipped desktop
+                              cloaking paradigm.
+
+    Anti-DreamBooth           Le et al. — alternating training defense.
+
+    AdvPaint / DiffusionGuard Inpainting-specific defense literature that
+                              directly informed the nudify threat model.
+
+    NullSwap                  ICCV 2025 — proof that a well-targeted
+                              identity attack can still work against
+                              modern face-swap models.
+
+    Silencer                  CVPR 2025 — the anti-purification objective
+                              we adopt for restorer-in-the-loop training.
+
+    Radiya-Dixit & Tramer     ICLR 2022 — the paper that killed Fawkes
+                              and taught us not to overpromise.
+
+    Honig et al.              UMD 2024 — "Adversarial Perturbations
+                              Cannot Reliably Protect Artists." Read it.
+
+    IMPRESS (Cao et al.)      NeurIPS 2023 — showed the DiffPure-style
+                              purification attack we must survive.

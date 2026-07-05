@@ -1,0 +1,46 @@
+# SPDX-License-Identifier: MIT
+#
+# Phase R1 baseline training config.
+#
+# Single face detector + single ArcFace, no restorers, no CLIP, no VAE.
+# The goal is a functioning PGD kernel and a functioning ensemble
+# interface. This config exists to exercise the wiring, not to produce
+# a shippable generator.
+
+[experiment]
+name = "phase1-baseline"
+seed = 0
+output_dir = "runs/phase1-baseline"
+
+[data]
+dataset = "ffhq"
+resolution = 512
+train_size = 5_000
+val_size = 500
+
+[optim]
+optimizer = "signed-pgd"
+epsilon = 12                     # 12/255
+alpha_num = 2                    # 2/255 = epsilon / 6
+alpha_den = 255
+steps = 200
+momentum = 0.9
+
+[loss.perceptual]
+lpips_weight = 0.10
+lpips_max = 0.05
+tv_weight = 0.01
+
+[targets.retinaface]
+weight = 0.5
+enabled = true
+
+[targets.arcface]
+weight = 0.5
+enabled = true
+
+[eot]
+k = 2
+jpeg_qualities = [85]
+resize_factors = [1.0]
+gaussian_sigma = [0.0]

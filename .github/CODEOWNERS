@@ -1,0 +1,40 @@
+# SPDX-License-Identifier: MIT
+#
+# CODEOWNERS mirrors MAINTAINERS. GitHub uses this file to request
+# reviews. The canonical ownership record is MAINTAINERS; if the two
+# disagree, MAINTAINERS wins.
+
+# Top-level metadata
+/README                   @voidface/maintainers
+/COPYING                  @voidface/maintainers
+/CHANGELOG                @voidface/maintainers
+/CREDITS                  @voidface/maintainers
+/MAINTAINERS              @voidface/maintainers
+/pyproject.toml           @voidface/maintainers
+/Makefile                 @voidface/maintainers
+
+# Documentation
+/Documentation/           @voidface/maintainers
+
+# Core training
+/src/voidface/core/       @voidface/maintainers
+/src/voidface/generator/  @voidface/maintainers
+
+# Models
+/src/voidface/models/                @voidface/maintainers
+/src/voidface/models/detectors/      @voidface/maintainers
+/src/voidface/models/recognizers/    @voidface/maintainers
+/src/voidface/models/vaes/           @voidface/maintainers
+/src/voidface/models/clip/           @voidface/maintainers
+/src/voidface/models/restorers/      @voidface/maintainers
+
+# Attacks
+/src/voidface/attacks/    @voidface/maintainers
+
+# Tools and runtime
+/tools/                   @voidface/maintainers
+/runtime/                 @voidface/maintainers
+
+# CI and scripts
+/.github/                 @voidface/maintainers
+/scripts/                 @voidface/maintainers

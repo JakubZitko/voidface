@@ -1,0 +1,57 @@
+                          Voidface — face-region AI blindfold
+
+  Voidface is an open-source system that adds imperceptible perturbations to
+  photos and short videos so that face-recognition and face-swap AI pipelines
+  either fail to detect a face at all or recover an incorrect identity, while
+  the perturbed image remains visually indistinguishable to a human viewer.
+
+  The heart of the project is a small (~10 MB) generator network G, trained
+  offline against an adversarial ensemble that includes face detectors,
+  identity encoders, diffusion VAEs, CLIP-family encoders, AND — the novel
+  element — the face-restoration models (GFPGAN, CodeFormer, Real-ESRGAN)
+  that every off-the-shelf face-swap pipeline uses to erase prior defenses.
+
+  At deploy time, applying G to an image is a single forward pass. On an
+  Apple-Silicon MacBook it runs in well under a second per image with no
+  external GPU. On older hardware it still runs in a few seconds on CPU.
+
+  Voidface is not a shield. It is a defense-in-depth layer. It raises the
+  cost of automated face-swap and nudify pipelines and is meant to be used
+  in combination with hash-based takedown (StopNCII, Take It Down), content
+  provenance (C2PA), and platform policy. See Documentation/limits.md for
+  the honest failure modes we know about.
+
+
+  BUILD
+
+    See Documentation/process/contributing.md.
+
+    make install       fetch dependencies (uv)
+    make lint          run ruff + mypy
+    make test          run pytest
+    make bench         run ASR / perceptual benchmarks
+    make docs          build documentation site
+
+
+  LAYOUT
+
+    Documentation/     documentation (mirrors src/ layout)
+    include/           public API surface (type stubs)
+    src/voidface/      core library (training + models + attacks)
+    tools/             user-facing programs (CLI, desktop, browser)
+    runtime/           shipped deploy runtime (CoreML, ONNX, WASM)
+    scripts/           maintenance scripts
+    samples/           example configs and sample data
+    tests/             unit and integration tests
+
+
+  LICENSING
+
+    Voidface is distributed under the MIT License. See COPYING.
+
+
+  SECURITY
+
+    Report vulnerabilities per Documentation/process/security.md.
+
+    Do not open a public issue for undisclosed vulnerabilities.

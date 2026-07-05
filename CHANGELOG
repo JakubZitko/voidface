@@ -1,0 +1,19 @@
+Voidface changelog. Newest at the top. Time flows downward.
+
+
+Voidface 0.0.1 — 2026-07-05
+
+    Initial repository scaffold.
+
+    * Established directory layout (src/, Documentation/, tools/, runtime/,
+      scripts/, samples/, tests/) mirroring Linux-kernel subsystem
+      organization.
+    * MIT license (COPYING, LICENSES/MIT.txt).
+    * Maintainer file with subsystem ownership (MAINTAINERS).
+    * Documentation/coding-style.md — style rules enforced across the tree.
+    * Documentation/architecture.md — the high-level design.
+    * pyproject.toml with the initial dependency set (PyTorch, torchvision,
+      onnx, coremltools; ruff and mypy for lint and type check).
+    * Makefile with install / lint / test / bench / docs targets.
+    * CI scaffolding under .github/workflows/.
+    * No ML code yet. This release is the empty vessel.

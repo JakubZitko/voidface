@@ -1,0 +1,102 @@
+# SPDX-License-Identifier: MIT
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+share/python-wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+MANIFEST
+
+# uv / pip
+.venv/
+venv/
+env/
+ENV/
+env.bak/
+venv.bak/
+.pip-cache/
+
+# Ruff / mypy / pytest
+.ruff_cache/
+.mypy_cache/
+.pytest_cache/
+.coverage
+.coverage.*
+htmlcov/
+.hypothesis/
+
+# ML checkpoints and weights (never committed)
+*.pt
+*.pth
+*.ckpt
+*.safetensors
+*.onnx
+*.mlpackage/
+*.mlmodel
+weights/
+checkpoints/
+runs/
+logs/
+wandb/
+tensorboard/
+
+# Model caches
+models/downloaded/
+.cache/
+.huggingface/
+
+# Data (never committed)
+data/
+datasets/
+
+# Rust / Cargo
+target/
+Cargo.lock.bak
+
+# Node
+node_modules/
+.pnpm-store/
+.next/
+.turbo/
+dist-ssr/
+*.local
+
+# Tauri
+tools/desktop/src-tauri/target/
+tools/desktop/dist/
+tools/desktop/node_modules/
+
+# Web
+tools/web/dist/
+tools/web/node_modules/
+
+# Editors and OS
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+Thumbs.db
+
+# Environment
+.env
+.env.local
+.env.*.local
