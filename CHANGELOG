@@ -100,6 +100,22 @@ Voidface 0.1.47 through 0.1.57 — 2026-07-05 — Phase R7.79 through R7.89
     Nonsensical inputs to every documented protect flag now fail
     early with a structured error, never with a traceback.
 
+    R7.111-R7.116 validation sweep completes:
+
+    * R7.111 CHANGELOG entry for R7.108-R7.110.
+    * R7.112 protect-video --epsilon and --temporal-blend
+      validation. 3 tests.
+    * R7.113 bench --resolution / --limit / --detection-threshold
+      validation. 4 tests.
+    * R7.114 empty checkpoint commit — session state landmark.
+    * R7.115 status.md test count refresh (188 -> 269).
+    * R7.116 bench --strict-* override thresholds validated to
+      their natural ranges. 1 test.
+
+    Session commit total: 172. Suite: 270 unit + 3 integration.
+    Every documented flag across every subcommand catches
+    nonsensical inputs at the top of the run().
+
 
 Voidface 0.1.34 through 0.1.46 — 2026-07-05 — Phase R7.66 through R7.78
 
