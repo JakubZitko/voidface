@@ -53,6 +53,28 @@ def run(args: argparse.Namespace) -> int:
         )
         return 2
 
+    if args.resolution < 1:
+        log.error(
+            "resolution.non_positive",
+            got=args.resolution,
+            hint="--resolution must be at least 1 pixel",
+        )
+        return 2
+    if args.limit < 0:
+        log.error(
+            "limit.negative",
+            got=args.limit,
+            hint="--limit must be >= 0 (0 means process every image)",
+        )
+        return 2
+    if not 0.0 <= args.detection_threshold <= 1.0:
+        log.error(
+            "detection_threshold.out_of_range",
+            got=args.detection_threshold,
+            hint="--detection-threshold is a probability in [0.0, 1.0]",
+        )
+        return 2
+
     log.info("checkpoint.loading", path=str(args.checkpoint))
     payload = torch.load(args.checkpoint, map_location="cpu", weights_only=False)
     if isinstance(payload, dict) and "state_dict" in payload:
