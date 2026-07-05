@@ -137,7 +137,6 @@ def _cmd_protect(args: argparse.Namespace) -> int:
     from voidface.core.pgd import PgdConfig, run_pgd
     from voidface.eval.perceptual import load_lpips, psnr, ssim
     from voidface.models.detectors.mtcnn_pnet import MtcnnPnet
-    from voidface.models.recognizers.facenet import Facenet
     from voidface.models.restorers.identity import IdentityRestorer
     from voidface.models.restorers.sampler import RestorerSampler, SamplerConfig
     from voidface.util.image import load_image, save_image
@@ -184,8 +183,10 @@ def _cmd_protect(args: argparse.Namespace) -> int:
         weights_targets["detector"] = 0.35
 
     if "recognizer" in selected:
-        log.info("model.recognizer.loading", name="facenet-vggface2")
-        recognizer = Facenet(device=device)
+        from voidface.models.recognizers.arcface import Arcface
+
+        log.info("model.recognizer.loading", name="arcface-r100")
+        recognizer = Arcface(device=device)
         target_losses["recognizer"] = (recognizer, arcface_identity_loss)
         weights_targets["recognizer"] = 0.40
 

@@ -1,6 +1,72 @@
 Voidface changelog. Newest at the top. Time flows downward.
 
 
+Voidface 0.0.6 — 2026-07-05 — Phase R4.3: real ArcFace / IResNet-100
+
+    The face-recognizer target moves from a Phase R1 FaceNet stand-in
+    to real ArcFace — the identity encoder that every off-the-shelf
+    face-swap and personalization pipeline (SimSwap, InSwapper,
+    FaceShifter, HifiFace, InstantID, PhotoMaker, IP-Adapter) uses as
+    its conditioner.
+
+    Vendored architecture:
+
+    * src/voidface/models/recognizers/_iresnet.py — IResNet-100 backbone
+      vendored from InsightFace's arcface_torch reference (Apache-2.0).
+      Full SPDX header + modification note. Bit-for-bit state-dict
+      compatibility with upstream weights. Modifications:
+        - Removed CUDA-only torch.cuda.amp.autocast in forward.
+        - Removed the placeholder raise in _iresnet's pretrained branch.
+        - Type-annotated and formatted to Voidface style. No functional
+          changes to the architecture.
+    * LICENSES/Apache-2.0-insightface.txt — the full Apache-2.0 license
+      text ships with the source and every wheel per the R4.1 sdist
+      change.
+
+    Wrapper (models/recognizers/arcface.py):
+
+    * Arcface(nn.Module) — differentiable IResNet-100 identity encoder.
+      Weight fetch from minchul/cvlface_arcface_ir101_webface4m (249 MB
+      torch pickle) through huggingface_hub.
+    * State-dict key remapping strips cvlface's wrapper prefixes
+      (model.*/backbone.*/net.*) so the checkpoint aligns with the
+      vendored arch bit-for-bit.
+    * Input adaptation matches the arcface_torch training pipeline
+      exactly: [0,1] RGB -> antialias resize to 112 -> BGR channel flip
+      (upstream trained on cv2 BGR pixels; a naive RGB feed silently
+      gives wrong embeddings) -> normalize to [-1, 1].
+    * Output: L2-normalized 512-D embedding. Plugs into the existing
+      arcface_identity_loss unchanged.
+
+    CLI wiring:
+
+    * tools/cli/voidface_cli/main.py — 'recognizer' target now loads
+      Arcface instead of Facenet. Facenet stand-in remains in the
+      tree at models/recognizers/facenet.py for reference; the
+      facenet-pytorch dep is kept until R4.4 lands (MtcnnPnet still
+      uses it).
+
+    Tests:
+
+    * tests/unit/test_arcface_smoke.py — module import, spec check,
+      IResNet-100 instantiation (65M params), (N, 3, 112, 112) ->
+      (N, 512) forward shape, and a monkey-patched wrapper test that
+      verifies (a) the BGR flip is applied, (b) the [-1, 1] normalize
+      is applied, and (c) the output embedding is unit-norm.
+    * Suite is 33 tests, all passing.
+
+    Known limits carried forward:
+
+    * ArcFace weights are trained on WebFace4M which carries academic/
+      non-commercial-research terms — documented in CREDITS as a
+      surrogate role. R5 self-hosts these weights to a Voidface-owned
+      HF repo (per R4 packaging critic).
+    * torch.load(weights_only=False) accepted for cvlface's .pt
+      pickle. R5 adds a SHA-256 integrity gate + safetensors mirror.
+    * MtcnnPnet still uses facenet-pytorch. Removed in R4.4 alongside
+      the real RetinaFace surrogate.
+
+
 Voidface 0.0.5 — 2026-07-05 — Phase R4.1 + R4.2: shared VAE loader, SDXL VAE
 
     Preparation and second VAE-family target for the R4 ensemble
