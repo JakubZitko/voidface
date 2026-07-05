@@ -66,13 +66,35 @@ def _build_parser() -> argparse.ArgumentParser:
         "protect",
         help="Add adversarial perturbation to a single image.",
     )
-    p_protect.add_argument("image", type=Path, help="Input image path.")
+    p_protect.add_argument(
+        "image",
+        type=Path,
+        help=(
+            "Input image path OR a directory (batch mode). In batch mode "
+            "every supported image is processed and written to --output-dir "
+            "with the same filename plus '.protected.png'."
+        ),
+    )
     p_protect.add_argument(
         "-o",
         "--output",
         type=Path,
         default=None,
-        help="Output image path (default: <image>.protected.png).",
+        help="Output image path (single-image mode; default: <image>.protected.png).",
+    )
+    p_protect.add_argument(
+        "--output-dir",
+        type=Path,
+        default=None,
+        help=(
+            "Batch mode output directory. Required when the input is a "
+            "directory; ignored otherwise."
+        ),
+    )
+    p_protect.add_argument(
+        "--recursive",
+        action="store_true",
+        help="Batch mode: recurse into subdirectories.",
     )
     p_protect.add_argument(
         "--epsilon", type=int, default=12, help="L-inf budget as N/255 (default 12)."
@@ -252,6 +274,10 @@ def _cmd_protect(args: argparse.Namespace) -> int:
     device = _resolve_device(args.device)
     log.info("device.selected", device=str(device))
 
+    # Batch mode dispatch: input is a directory.
+    if args.image.is_dir():
+        return _protect_batch(args, device, log)
+
     log.info("image.loading", path=str(args.image))
     clean = load_image(args.image).to(device).unsqueeze(0)
     log.info("image.loaded", shape=tuple(clean.shape))
@@ -412,6 +438,49 @@ def _cmd_protect(args: argparse.Namespace) -> int:
     log.info("image.saved", path=str(output))
 
     _print_summary(clean=clean, adversarial=result.adversarial, output=output)
+    return 0
+
+
+def _protect_batch(args: argparse.Namespace, device, log) -> int:  # noqa: ANN001
+    """Process every image in a directory, writing outputs to --output-dir.
+
+    Batch mode currently requires --use-generator — running per-image
+    PGD on a large folder is impractical (~2 min per image). The
+    error path when --use-generator is missing is loud and points at
+    the deploy fast path.
+    """
+    from voidface.data.datasets import collect_image_paths
+    from voidface.util.image import load_image, save_image
+
+    if args.output_dir is None:
+        log.error(
+            "batch.missing_output_dir",
+            hint="pass --output-dir DIR to write protected outputs",
+        )
+        return 2
+    if args.use_generator is None:
+        log.error(
+            "batch.requires_generator",
+            hint="pass --use-generator CHECKPOINT to enable batch mode",
+        )
+        return 2
+
+    args.output_dir.mkdir(parents=True, exist_ok=True)
+    paths = collect_image_paths(args.image, recursive=args.recursive)
+    log.info("batch.starting", count=len(paths), output_dir=str(args.output_dir))
+
+    for index, path in enumerate(paths):
+        log.info("batch.item", index=index + 1, total=len(paths), path=str(path))
+        clean = load_image(path).to(device).unsqueeze(0)
+        # Reuse the single-image fast path, but redirect its output.
+        args_copy = argparse.Namespace(**vars(args))
+        args_copy.image = path
+        args_copy.output = args.output_dir / (path.stem + ".protected.png")
+        rc = _protect_via_generator(args_copy, clean, log)
+        if rc != 0:
+            log.error("batch.item_failed", index=index + 1, path=str(path), rc=rc)
+            return rc
+    log.info("batch.done", count=len(paths))
     return 0
 
 
