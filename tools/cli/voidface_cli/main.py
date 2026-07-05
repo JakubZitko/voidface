@@ -862,7 +862,9 @@ _WORKFLOW_HELP = """
 End-to-end workflow
 -------------------
 
-Train:         voidface train samples/configs/train_full.toml
+Bootstrap:     voidface init full -o cfg.toml           # or 'smoke' for a fast check
+Train:         voidface train cfg.toml
+Or use ref:    voidface train samples/configs/train_full.toml
 Validate:      voidface bench runs/step-050000.pt path/to/test/ \\
                    --json bench.json --limit 200
 Compare A/B:   voidface bench runs/step-050000.pt path/to/test/ \\
