@@ -95,6 +95,11 @@ soft face-region mask.
   optimize; the flag is ignored on the pure `--use-generator` path.
   It IS respected when `--refine-steps > 0` since that path returns
   to PGD.
+- **`--use-generator` with `--iris-boost`.** Iris boost adjusts
+  the per-pixel L-inf ceiling during PGD's clamp step. G at deploy
+  has no PGD step; the flag is ignored on the pure `--use-generator`
+  path (the CLI emits a warn log naming this). It IS respected
+  when `--refine-steps > 0` (the refinement pass is a PGD loop).
 - **`--use-generator` alone with `--refine-steps > 0` but no
   `--targets`.** The refinement step requires the ensemble targets
   to be loaded. Currently the CLI accepts this and silently uses
