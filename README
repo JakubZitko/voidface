@@ -22,6 +22,13 @@
   the honest failure modes we know about.
 
 
+  STATUS
+
+    Read Documentation/status.md for the current shipped state — the
+    ensemble targets, restorers, generator, and export paths that
+    are real code today vs. still on the roadmap.
+
+
   BUILD
 
     See Documentation/process/contributing.md.
@@ -31,6 +38,22 @@
     make test          run pytest
     make bench         run ASR / perceptual benchmarks
     make docs          build documentation site
+
+
+  USAGE
+
+    Per-image PGD (works today, weights auto-download on first run):
+
+        voidface protect input.jpg -o protected.png --epsilon 12
+
+    Train the shipped generator:
+
+        voidface train samples/configs/train_r5_smoke.toml
+
+    Export to every deploy artifact:
+
+        voidface export ckpt.pt out/voidface.onnx \
+            --quantize int8 --coreml --ort
 
 
   LAYOUT

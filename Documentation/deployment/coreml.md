@@ -1,8 +1,21 @@
 # CoreML deployment
 
-CoreML is the primary shipping target. It runs `G` on the Apple Neural
-Engine on any M-series Mac, iPad, or iPhone, and falls back cleanly to
-the GPU or CPU on Intel and older devices.
+CoreML is the primary shipping target for Apple Silicon. It runs `G`
+on the Neural Engine on any M-series Mac, iPad, or iPhone, and falls
+back cleanly to the GPU or CPU on Intel and older devices.
+
+## Current shipped state
+
+- `src/voidface/export/coreml.py::export_generator_to_coreml` traces
+  the generator on CPU, converts to ml-program CoreML with flexible
+  input dims (64..2048), and applies coremltools' 8-bit linear
+  symmetric weight quant by default.
+- `voidface export --coreml` emits a Voidface.mlpackage sibling to
+  the fp32 .onnx artifact.
+- `coremltools` is Apple Silicon-only in modern releases; the
+  pyproject dep is gated. On Intel Mac or non-Apple platforms, the
+  code path raises `CoreMlExportError` instead of a cryptic
+  `ImportError`.
 
 ## Export flow
 

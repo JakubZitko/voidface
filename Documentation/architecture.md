@@ -5,6 +5,8 @@ is laid out the way it is, and where the load-bearing decisions live.
 
 For the exact style rules that apply everywhere, see `coding-style.md`.
 For per-subsystem detail, see the sibling files under `Documentation/`.
+For the current shipped state (what's real code today vs still a plan),
+see `status.md`.
 
 ---
 
