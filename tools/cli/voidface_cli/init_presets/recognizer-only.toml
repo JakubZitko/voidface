@@ -1,0 +1,30 @@
+# SPDX-License-Identifier: MIT
+# Voidface recognizer-only training TOML — attack ArcFace.
+
+[experiment]
+name = "recognizer-only"
+steps = 50_000
+
+[data]
+directory = "~/data/ffhq"
+resolution = 256
+batch_size = 8
+
+[optim]
+learning_rate = 1e-4
+epsilon_frac = 0.047
+
+[loss.perceptual]
+lpips_weight = 0.10
+tv_weight = 0.01
+
+[eot]
+k = 4
+jpeg_qualities = [55, 75, 95]
+
+[targets.recognizer]
+enabled = true
+weight = 1.0
+
+[restorers]
+identity = 1.0

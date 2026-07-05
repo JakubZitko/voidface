@@ -21,3 +21,6 @@ build-backend = "hatchling.build"
 
 [tool.hatch.build.targets.wheel]
 packages = ["voidface_cli"]
+
+[tool.hatch.build.targets.wheel.force-include]
+"voidface_cli/init_presets" = "voidface_cli/init_presets"

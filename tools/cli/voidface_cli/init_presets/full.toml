@@ -1,0 +1,62 @@
+# SPDX-License-Identifier: MIT
+# Voidface full training TOML — the R5.5 reference config.
+
+[experiment]
+name = "full-ensemble"
+seed = 0
+steps = 300_000
+log_every = 100
+checkpoint_every = 5_000
+checkpoint_dir = "runs/full-ensemble"
+
+[data]
+directory = "~/data/ffhq"
+resolution = 512
+batch_size = 16
+augment = true
+
+[optim]
+learning_rate = 1e-4
+weight_decay = 1e-6
+epsilon_frac = 0.047
+eot_samples = 4
+
+[loss]
+bilevel_lpips = 0.05
+normalize_per_target = true
+normalization_ema_decay = 0.99
+
+[loss.perceptual]
+lpips_weight = 0.10
+tv_weight = 0.01
+
+[eot]
+k = 4
+jpeg_qualities = [40, 55, 70, 85, 95]
+resize_factors = [0.5, 0.75, 1.0, 1.5, 2.0]
+gaussian_sigma = [0.0, 0.5, 1.0, 1.5]
+
+[targets.detector]
+enabled = true
+weight = 0.35
+
+[targets.recognizer]
+enabled = true
+weight = 0.40
+
+[targets.vae]
+enabled = true
+weight = 0.20
+
+[targets.sdxl-vae]
+enabled = true
+weight = 0.15
+
+[targets.openclip]
+enabled = true
+weight = 0.10
+
+[restorers]
+identity = 0.10
+"sd15-vae" = 0.30
+gfpgan = 0.60

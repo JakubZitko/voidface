@@ -1,0 +1,30 @@
+# SPDX-License-Identifier: MIT
+# Voidface smoke training TOML — fast local check, no external weight downloads.
+
+[experiment]
+name = "smoke"
+seed = 0
+steps = 20
+log_every = 5
+checkpoint_every = 20
+
+[data]
+directory = "samples/images"
+resolution = 64
+batch_size = 1
+augment = false
+
+[optim]
+learning_rate = 1e-3
+weight_decay = 1e-6
+epsilon_frac = 0.047
+
+[loss.perceptual]
+lpips_weight = 0.0
+tv_weight = 0.01
+
+[eot]
+k = 1
+
+[restorers]
+identity = 1.0
