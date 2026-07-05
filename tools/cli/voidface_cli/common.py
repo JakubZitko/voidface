@@ -170,4 +170,4 @@ def run_generator_and_save(
         adversarial = (clean + delta * mask.unsqueeze(0)).clamp(0.0, 1.0)
 
     save_image(adversarial.squeeze(0), output_path)
-    return adversarial
+    return adversarial  # type: ignore[no-any-return]
