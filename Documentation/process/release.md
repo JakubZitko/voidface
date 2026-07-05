@@ -62,8 +62,12 @@ and this runbook cannot drift apart.
 
 ## Step 3 — Package + verify
 
+- Preview first: `voidface package <ckpt> release/<version>/
+  --calibration-dir ~/data/ffhq-cal/ --coreml --dry-run`. Confirms
+  the flag combination and the planned artifact list without
+  running the expensive ONNX + static-quant + CoreML export.
 - `voidface package <ckpt> release/<version>/ --calibration-dir
-  ~/data/ffhq-cal/ --coreml`
+  ~/data/ffhq-cal/ --coreml` — the real run.
 - `voidface verify release/<version>/` — sanity check the bundle
   before upload.
 - Attach `release/<version>/MANIFEST.json` to the release notes
