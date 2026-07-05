@@ -50,11 +50,32 @@ _TAU_FACE_SUPPRESSION = 0.05
 
 @dataclass(frozen=True)
 class LossWeights:
-    """Static weights for the composite loss."""
+    """Static weights for the composite loss.
+
+    Attributes:
+        targets: Per-target weights for the ensemble adversarial
+            losses.
+        lpips: Weight on ``LPIPS(clean, adversarial)`` — the
+            perceptual invisibility constraint. Minimized (the
+            generator wants small perceptual distance to the clean
+            reference so the perturbation is invisible).
+        total_variation: Weight on TV(delta) — a smoothness prior
+            that helps the perturbation survive JPEG.
+        bilevel_lpips: Weight on ``LPIPS(restorer(clean),
+            restorer(adversarial))`` — the CEO-critic-mandated
+            "does the attack survive restoration" perceptual signal.
+            Subtracted from the loss (we want restored versions to
+            look different — MAXIMIZE this LPIPS). Only active when
+            a restorer is passed to :meth:`CompositeLoss.compute`
+            AND its spec.name is not ``"identity"``. Recommended
+            small (e.g. 0.05) so it complements rather than dominates
+            the ensemble adversarial signal.
+    """
 
     targets: Mapping[str, float] = field(default_factory=dict)
     lpips: float = 0.10
     total_variation: float = 0.01
+    bilevel_lpips: float = 0.0
 
 
 @dataclass
@@ -66,6 +87,7 @@ class LossBreakdown:
     total_variation: float
     total: float
     restorer: str = "identity"
+    bilevel_lpips: float = 0.0
 
 
 def retinaface_suppression_loss(outputs: TargetOutputs) -> Tensor:
@@ -215,11 +237,25 @@ class CompositeLoss:
         if self._lpips is not None and self._weights.lpips > 0.0:
             lpips_value = self._lpips(clean, adversarial)
 
+        bilevel_lpips_value = adversarial.new_zeros(())
+        active_restorer = restorer is not None and restorer.spec.name != "identity"
+        if (
+            self._lpips is not None
+            and self._weights.bilevel_lpips > 0.0
+            and active_restorer
+        ):
+            # Route the clean side through the same restorer so we
+            # measure whether the delta survives restoration.
+            assert restorer is not None  # for type checkers
+            clean_restored = restorer(clean)
+            bilevel_lpips_value = self._lpips(clean_restored, adversarial_input)
+
         tv_value = total_variation(delta)
 
         total = (
             weighted_target_loss
             + self._weights.lpips * lpips_value
+            - self._weights.bilevel_lpips * bilevel_lpips_value
             + self._weights.total_variation * tv_value
         )
         breakdown = LossBreakdown(
@@ -228,6 +264,11 @@ class CompositeLoss:
             total_variation=float(tv_value.detach()),
             total=float(total.detach()),
             restorer=restorer.spec.name if restorer is not None else "identity",
+            bilevel_lpips=(
+                float(bilevel_lpips_value.detach())
+                if isinstance(bilevel_lpips_value, Tensor)
+                else 0.0
+            ),
         )
         return total, breakdown
 
