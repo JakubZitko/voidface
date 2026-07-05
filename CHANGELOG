@@ -1,6 +1,74 @@
 Voidface changelog. Newest at the top. Time flows downward.
 
 
+Voidface 0.0.44 through 0.0.64 — 2026-07-05 — Phase R6.12 through R7.14
+
+    Second half of the same session, twenty-one further commits.
+
+    Attacks + research:
+      * R7.1 semantic geometric warp attack (attacks/semantic.py).
+      * R7.3 composed into run_pgd + --semantic-warp CLI flag.
+      * R6.14 differentiable JPEG in EOT (Reich et al 2024) with
+        the standard luma/chroma quantization tables and an STE
+        round.
+
+    Loss engineering:
+      * R4.5.2c-1 bilevel LPIPS(restorer(clean),
+        restorer(adversarial)) subtracted from the total.
+      * R5.5-follow per-target EMA normalization
+        (LossWeights.normalize_per_target). Balances VAE terms
+        (~50) against detector terms (~0.05).
+      * R7.7 both wired through [loss] TOML section.
+      * R4.5.2c-2 SHA-256 integrity gate on GFPGAN weight download.
+
+    Deploy paths:
+      * R5.7 --use-generator single-forward-pass fast path.
+      * R5.7b --output-dir batch mode.
+      * R5.7c batch mode loads generator once (perf refactor).
+      * R7.4 --refine-steps N — PGD warm-start from G's output.
+      * R6.10 --face-mask on protect (Haar cascade).
+      * R6.10b --face-mask on protect-video.
+      * R5.4d-follow static (calibrated) int8 quantization.
+      * R5.4d-follow-2 --quantize-static-dir wired into CLI.
+      * R5.4c-follow ORT-Web .ort conversion + --ort CLI flag.
+      * R7.10 `voidface package` bundler with CHECKSUMS + MANIFEST.
+
+    Video:
+      * R6.7a `voidface protect-video` (per-frame G).
+      * R6.7b temporal coherence via Farnebäck optical flow warping.
+      * R6.7c integration tests for both video modes.
+
+    CLI polish + UX:
+      * R6.9 `voidface info` checkpoint inspector.
+      * R6.13 `voidface config-check` config validator.
+      * R7.5 `voidface bench --out-dir` saves protected images.
+      * R7.6 `voidface bench --limit N` caps test set.
+      * R7.9 `voidface bench --baseline` A/B against previous JSON.
+      * R5.6b `voidface bench --json` machine-readable output.
+      * R7.13 `voidface init <preset>` starter TOML.
+      * R7.8 workflow-oriented `voidface --help` epilog.
+
+    Docs + infra:
+      * R6.4 tests/integration/ full-pipeline CLI walk.
+      * R6.5 Documentation/training/tuning.md operational playbook.
+      * R6.7c video-CLI integration tests.
+      * R7.11 Documentation/deployment/browser.md.
+      * R7.12 status.md refresh with R7.x additions.
+      * R7.14 subsystem docs (detectors/recognizers/vaes) marked
+        shipped vs roadmap.
+      * R6.11 CI workflow refresh (3 separate jobs, extras
+        installed).
+      * R6.8 ruff config tune (49 -> 66 -> 47 remaining after
+        auto-fix pass).
+      * R6.2 numpy warning silenced.
+      * R6.6 generator ONNX tracer warnings silenced.
+
+    Session tally at end of second half: 60+ commits, 150 tests +
+    1 correctly-skipped Apple Silicon test. Full CLI surface has
+    9 subcommands (init, protect, protect-video, train, bench,
+    export, package, info, config-check).
+
+
 Voidface 0.0.17 through 0.0.43 — 2026-07-05 — Phase R4.5.2c through R6.11 (rapid session)
 
     Twenty-seven consecutive releases in one session. Each shipped a
