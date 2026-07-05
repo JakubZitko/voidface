@@ -1,6 +1,59 @@
 Voidface changelog. Newest at the top. Time flows downward.
 
 
+Voidface 0.0.10 — 2026-07-05 — Phase R4.5.2a: differentiable 5-point aligner
+
+    Prerequisite for the GfpganRestorer in R4.5.2b. The R4 CEO critic
+    flagged that face restorers are trained on tightly-cropped
+    FFHQ-aligned face crops and that feeding them off-distribution
+    unaligned inputs produces a gradient signal that does not reflect
+    what an attacker's real pipeline sees. This module gives
+    R4.5.2b's restorer a differentiable path from a full RGB image +
+    5 landmarks to an FFHQ-canonical 512x512 aligned crop, and back.
+
+    New:
+
+    * src/voidface/data/align.py — three public functions and one
+      container:
+        - FFHQ_LANDMARKS_512 constant: the same 5-point template
+          GFPGAN, CodeFormer, and Real-ESRGAN-face-enhance were
+          trained against.
+        - estimate_similarity_transform(source, target) — batched
+          least-squares fit for (scale, rotation, translation) via
+          SVD. Reflection-corrected so det(R) = +1.
+        - align_faces(image, landmarks, output_size=512) — returns an
+          AlignedFace(crop, transform) named-container.
+          Grid-sample-based warp; differentiable through the input
+          image and landmarks.
+        - unalign_paste(original, restored_crop, transform,
+          feather_pixels=32) — pastes the aligned restored crop back
+          into the original image space via inverse similarity
+          transform + feathered alpha blend. Also differentiable.
+
+    Tests:
+
+    * tests/unit/test_align.py — identity transform recovered on
+      same-in-same-out, pure translation recovered accurately, shape
+      contract enforced, gradient flows through the full pipeline
+      (grad-check), and the align-then-unalign round-trip
+      reconstructs the input to within a small blend tolerance.
+    * Suite is 48 tests, all passing.
+
+    What R4.5.2b will build on this (next commit):
+
+    * GfpganRestorer(Restorer) that: reuses a RetinaFace instance for
+      landmarks, aligns via align_faces, forwards the aligned crop
+      through the vendored GFPGANv1Clean (weights fetched with a
+      SHA-256 gate), denormalizes [-1, 1] -> [0, 1] + clamp, then
+      pastes back via unalign_paste. Full Restorer-protocol
+      compliance: (N, 3, H, W) in -> (N, 3, H, W) out.
+    * RestorerSampler mix adjustment: identity 0.10, sd15-vae 0.30,
+      gfpgan 0.60 (per CEO critic — restorer is the headline).
+    * Bilevel LPIPS(gfpgan(x+delta), gfpgan(x_clean)) term in the
+      composite loss.
+    * MPS gradient checkpointing over the 8 StyleGAN2 decoder blocks.
+
+
 Voidface 0.0.9 — 2026-07-05 — Phase R4.6: OpenAI CLIP ViT-B/32 surrogate
 
     First CLIP-family target lands. Every 2024-2026 personalization
