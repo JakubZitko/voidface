@@ -179,6 +179,9 @@ convention = "google"
 [tool.ruff.lint.per-file-ignores]
 "tests/**" = ["D", "S", "PT", "ANN", "PLR", "SLF"]
 "scripts/**" = ["D", "S", "T20"]
+# main.py's subcommand delegators defer their commands.* imports so
+# `voidface --help` doesn't pull in torch. PLC0415 fires on those.
+"tools/cli/voidface_cli/main.py" = ["PLC0415"]
 # Vendored files carry their upstream style. Only enforce SPDX + imports.
 "src/voidface/models/recognizers/_iresnet.py" = ["ALL"]
 "src/voidface/models/detectors/_retinaface_arch.py" = ["ALL"]

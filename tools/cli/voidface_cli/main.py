@@ -31,31 +31,24 @@ def main(argv: Sequence[str] | None = None) -> int:
     parser = _build_parser()
     args = parser.parse_args(list(argv) if argv is not None else None)
 
-    if args.command == "protect":
-        return _cmd_protect(args)
-    if args.command == "report":
-        return _cmd_report(args)
-    if args.command == "train":
-        return _cmd_train(args)
-    if args.command == "export":
-        return _cmd_export(args)
-    if args.command == "bench":
-        return _cmd_bench(args)
-    if args.command == "protect-video":
-        return _cmd_protect_video(args)
-    if args.command == "info":
-        return _cmd_info(args)
-    if args.command == "config-check":
-        return _cmd_config_check(args)
-    if args.command == "package":
-        return _cmd_package(args)
-    if args.command == "init":
-        return _cmd_init(args)
-    if args.command == "verify":
-        return _cmd_verify(args)
-
-    parser.print_help(sys.stderr)
-    return 2
+    dispatch = {
+        "protect": _cmd_protect,
+        "report": _cmd_report,
+        "train": _cmd_train,
+        "export": _cmd_export,
+        "bench": _cmd_bench,
+        "protect-video": _cmd_protect_video,
+        "info": _cmd_info,
+        "config-check": _cmd_config_check,
+        "package": _cmd_package,
+        "init": _cmd_init,
+        "verify": _cmd_verify,
+    }
+    handler = dispatch.get(args.command)
+    if handler is None:
+        parser.print_help(sys.stderr)
+        return 2
+    return handler(args)
 
 
 def app() -> None:
