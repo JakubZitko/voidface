@@ -332,6 +332,18 @@ def _build_parser() -> argparse.ArgumentParser:
             "0 (default) processes every image."
         ),
     )
+    p_bench.add_argument(
+        "--baseline",
+        type=Path,
+        default=None,
+        metavar="JSON",
+        help=(
+            "Load a previous bench JSON and print a delta table. Exits with "
+            "code 1 if the new checkpoint regresses on ANY aggregate "
+            "metric (detection ASR must not fall; identity cos+1 must not "
+            "rise; PSNR/SSIM must not fall)."
+        ),
+    )
 
     p_pv = sub.add_parser(
         "protect-video",
@@ -1149,6 +1161,45 @@ def _cmd_bench(args: argparse.Namespace) -> int:
         args.json.parent.mkdir(parents=True, exist_ok=True)
         args.json.write_text(json.dumps(payload, indent=2))
         log.info("bench.json.written", path=str(args.json))
+
+    if args.baseline is not None:
+        import json
+
+        if not args.baseline.exists():
+            print(f"error: baseline file not found: {args.baseline}", file=sys.stderr)
+            return 2
+        baseline = json.loads(args.baseline.read_text())
+        current = {
+            "detection_asr": summary.detection_asr(args.detection_threshold),
+            "mean_identity_cosine_plus_one": summary.mean_identity_cosine_plus_one,
+            "mean_psnr_db": summary.mean_psnr_db,
+            "mean_ssim": summary.mean_ssim,
+        }
+        print("--- baseline comparison ---")
+        regressed = False
+        for name in ("detection_asr", "mean_psnr_db", "mean_ssim"):
+            base = float(baseline.get(name, 0))
+            cur = current[name]
+            delta = cur - base
+            symbol = "↑" if delta > 0 else ("↓" if delta < 0 else "=")
+            if delta < 0:
+                regressed = True
+            print(f"  {name:32s}  {base:.4f}  ->  {cur:.4f}  {symbol}{abs(delta):.4f}")
+        # identity cos+1 lower is better.
+        base = float(baseline.get("mean_identity_cosine_plus_one", 2))
+        cur = current["mean_identity_cosine_plus_one"]
+        delta = cur - base
+        symbol = "↓" if delta < 0 else ("↑" if delta > 0 else "=")
+        if delta > 0:
+            regressed = True
+        print(
+            f"  {'mean_identity_cosine_plus_one':32s}  {base:.4f}  ->  "
+            f"{cur:.4f}  {symbol}{abs(delta):.4f}  (lower is better)"
+        )
+        if regressed:
+            print("VERDICT: regression")
+            return 1
+        print("VERDICT: no regression")
 
     return 0
 
