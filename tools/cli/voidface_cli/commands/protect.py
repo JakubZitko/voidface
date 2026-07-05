@@ -231,8 +231,13 @@ def _protect_via_generator(args: argparse.Namespace, clean: torch.Tensor, log: A
     return 0
 
 
-def run(args: argparse.Namespace) -> int:
-    """Main entry point for `voidface protect`."""
+def run(args: argparse.Namespace) -> int:  # noqa: C901, PLR0911, PLR0912, PLR0915
+    """Main entry point for `voidface protect`.
+
+    Many return branches are validation short-circuits (R7.86-R7.110);
+    keep them here so users get a single structured error before any
+    expensive work runs.
+    """
     configure_logging(level="DEBUG" if args.verbose else "INFO")
     log = get_logger("voidface.cli")
 

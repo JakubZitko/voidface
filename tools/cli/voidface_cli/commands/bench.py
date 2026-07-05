@@ -21,8 +21,13 @@ from voidface.util.log import configure_logging, get_logger
 from voidface_cli.common import resolve_device
 
 
-def run(args: argparse.Namespace) -> int:
-    """Benchmark a trained generator against a folder of test images."""
+def run(args: argparse.Namespace) -> int:  # noqa: C901, PLR0911, PLR0912, PLR0915
+    """Benchmark a trained generator against a folder of test images.
+
+    Many return branches are validation short-circuits (R7.105/R7.113/R7.116);
+    each triggers a structured log.error + exit code 2 before any expensive
+    work runs.
+    """
     configure_logging(level="INFO")
     log = get_logger("voidface.cli.bench")
     device = resolve_device(args.device)
