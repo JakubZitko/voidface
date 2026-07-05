@@ -1,0 +1,147 @@
+<!doctype html>
+<!--
+  SPDX-License-Identifier: MIT
+  Copyright (c) 2026 Voidface contributors
+-->
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Voidface — browser demo</title>
+    <style>
+      :root {
+        color-scheme: dark;
+        --fg: #e6e6e6;
+        --bg: #0e0e0e;
+        --accent: #7cffa8;
+        --muted: #7a7a7a;
+      }
+      html, body {
+        margin: 0;
+        padding: 0;
+        background: var(--bg);
+        color: var(--fg);
+        font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
+      }
+      main {
+        max-width: 960px;
+        margin: 3rem auto;
+        padding: 0 1.5rem;
+      }
+      h1 {
+        font-size: 2rem;
+        letter-spacing: -0.02em;
+        margin: 0 0 0.5rem 0;
+      }
+      p.lede {
+        color: var(--muted);
+        max-width: 62ch;
+        line-height: 1.55;
+      }
+      #drop {
+        margin: 2rem 0;
+        border: 2px dashed #333;
+        border-radius: 12px;
+        padding: 3rem 1.5rem;
+        text-align: center;
+        transition: border-color 120ms;
+      }
+      #drop.drag {
+        border-color: var(--accent);
+      }
+      #panels {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 1.5rem;
+        margin-top: 1.5rem;
+      }
+      .panel {
+        background: #171717;
+        border-radius: 12px;
+        overflow: hidden;
+      }
+      .panel h3 {
+        margin: 0;
+        padding: 0.75rem 1rem;
+        background: #222;
+        font-size: 0.9rem;
+        font-weight: 500;
+        color: var(--muted);
+      }
+      .panel img {
+        display: block;
+        width: 100%;
+        height: auto;
+      }
+      #status {
+        margin-top: 1rem;
+        font-family: ui-monospace, monospace;
+        font-size: 0.85rem;
+        color: var(--muted);
+        white-space: pre-wrap;
+      }
+      button {
+        background: var(--accent);
+        color: #001;
+        border: none;
+        border-radius: 8px;
+        padding: 0.6rem 1.1rem;
+        font-size: 0.9rem;
+        cursor: pointer;
+        font-weight: 600;
+      }
+      button:disabled {
+        background: #333;
+        color: var(--muted);
+        cursor: not-allowed;
+      }
+      .row {
+        display: flex;
+        gap: 0.75rem;
+        align-items: center;
+      }
+      label {
+        color: var(--muted);
+        font-size: 0.85rem;
+      }
+      input[type="file"] {
+        color: var(--fg);
+      }
+    </style>
+  </head>
+  <body>
+    <main>
+      <h1>Voidface — browser demo</h1>
+      <p class="lede">
+        Drop a photo below. Voidface runs the trained generator entirely on your
+        machine — nothing leaves this tab — and emits a visually-indistinguishable
+        image whose face features read as noise to face-swap and nudify AI
+        pipelines. Requires a trained <code>voidface.ort</code> model file loaded
+        below (produced by <code>voidface export --ort</code>).
+      </p>
+
+      <div class="row">
+        <label>Model: <input id="model" type="file" accept=".ort,.onnx" /></label>
+        <span id="modelStatus"></span>
+      </div>
+
+      <div id="drop" role="button" tabindex="0">
+        Drop a photo here, or <label style="text-decoration: underline; cursor: pointer;">choose one<input id="picker" type="file" accept="image/*" style="display:none;" /></label>.
+      </div>
+
+      <div id="panels" style="display: none;">
+        <div class="panel">
+          <h3>Original</h3>
+          <img id="original" alt="original" />
+        </div>
+        <div class="panel">
+          <h3>Protected</h3>
+          <img id="protected" alt="protected" />
+        </div>
+      </div>
+
+      <div id="status">Status: waiting for model.</div>
+    </main>
+    <script type="module" src="/src/main.ts"></script>
+  </body>
+</html>

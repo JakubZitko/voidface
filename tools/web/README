@@ -1,10 +1,47 @@
-Voidface web demo — scaffold placeholder.
+Voidface browser demo — real code, no trained weights bundled.
 
-The web demo is a static Vite + TypeScript app that loads the ONNX
-generator through `onnxruntime-web` with the WebGPU execution provider,
-runs entirely client-side (files never leave the tab), and offers a
-drag-and-drop UI.
+Runs the shipped generator locally in the browser via
+onnxruntime-web. WebGPU when the browser supports it; WASM fallback
+otherwise. Files never leave the tab.
 
-This directory is intentionally empty until Phase R5. See
-`../../Documentation/deployment/onnx.md` for the export path and
-`../../Documentation/architecture.md` for the shape of the release.
+The demo needs a trained Voidface `.ort` or `.onnx` file. Produce
+one with:
+
+    voidface export runs/checkpoint.pt out/voidface.onnx \
+        --quantize int8 --ort
+
+Then load `out/voidface.ort` (or `out/voidface.int8.onnx`) via the
+"Model" picker in the demo UI.
+
+Development:
+
+    cd tools/web
+    npm install
+    npm run dev
+
+Production build:
+
+    npm run build
+    npm run preview
+
+Design goals inherited from the top-level architecture:
+
+  * No accounts. No telemetry. Nothing uploaded.
+  * WebGPU when available; WASM fallback.
+  * Input side lengths padded to a multiple of 16 before inference
+    (matches the generator's stride constraint).
+
+Files:
+
+    index.html           Drop-target UI.
+    src/main.ts          Model load + inference pipeline.
+    vite.config.ts       Vite server with COOP/COEP headers.
+    tsconfig.json        TypeScript strict.
+    package.json         onnxruntime-web + Vite + TypeScript.
+
+Not yet built:
+
+  * Trained weight release (R5.5 — depends on real training run).
+  * PWA install prompt.
+  * Batch mode (multiple photos).
+  * Video support.
