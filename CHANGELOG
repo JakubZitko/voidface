@@ -134,6 +134,18 @@ Voidface 0.1.47 through 0.1.57 — 2026-07-05 — Phase R7.79 through R7.89
     Whole `voidface_cli/` tree (common.py + 11 subcommand modules)
     now strictly mypy-clean.
 
+    R7.124-R7.125 — quality tidy-up:
+
+    * R7.124 dropped an unused torch.nn.functional import from
+      src/voidface/core/jpeg.py (ruff F401).
+    * R7.125 test_cli_fast_startup.py — CLI cold-start regression
+      guard. Two subprocess-run tests that verify
+      `import voidface_cli.main` does NOT drag in torch and
+      completes under 5s. Locks the R7.54-R7.65 delegator
+      extraction's promise.
+
+    Session commit total: 181. Suite: 273 unit + 3 integration.
+
 
 Voidface 0.1.34 through 0.1.46 — 2026-07-05 — Phase R7.66 through R7.78
 
