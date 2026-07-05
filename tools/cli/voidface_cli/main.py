@@ -223,6 +223,19 @@ def _build_parser() -> argparse.ArgumentParser:
             "Users can audit later what protection was applied."
         ),
     )
+    p_protect.add_argument(
+        "--emit-delta",
+        type=Path,
+        default=None,
+        metavar="PATH",
+        help=(
+            "Save the raw (protected - clean) delta as a torch .pt tensor. "
+            "Research artifact — useful for analyzing the delta distribution "
+            "or for reproducing the exact perturbation without re-running "
+            "the tool. The delta plus the source image reconstructs the "
+            "protected image bit-exactly."
+        ),
+    )
 
     p_report = sub.add_parser(
         "report",
@@ -769,6 +782,10 @@ def _cmd_protect(args: argparse.Namespace) -> int:
     if args.output_json is not None:
         _write_output_json(args, clean, adversarial, output)
         log.info("output_json.written", path=str(args.output_json))
+    if args.emit_delta is not None:
+        args.emit_delta.parent.mkdir(parents=True, exist_ok=True)
+        torch.save(adversarial - clean, args.emit_delta)
+        log.info("delta.written", path=str(args.emit_delta))
     return 0
 
 
@@ -906,6 +923,12 @@ def _protect_via_generator(args: argparse.Namespace, clean, log) -> int:  # noqa
     if args.output_json is not None:
         _write_output_json(args, clean, adversarial, output)
         log.info("output_json.written", path=str(args.output_json))
+    if args.emit_delta is not None:
+        import torch as _torch
+
+        args.emit_delta.parent.mkdir(parents=True, exist_ok=True)
+        _torch.save(adversarial - clean, args.emit_delta)
+        log.info("delta.written", path=str(args.emit_delta))
     return 0
 
 
