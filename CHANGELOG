@@ -64,6 +64,19 @@ Voidface 0.1.47 through 0.1.57 — 2026-07-05 — Phase R7.79 through R7.89
     Suite is 255 unit + 3 integration tests. Session commit
     total: 155.
 
+    R7.100+ follow-ons:
+
+    * R7.100 CHANGELOG entry for R7.97-R7.99 + session milestone.
+    * R7.101 ruff --fix cleanup on voidface_cli/common.py
+      (dropped 7 unused-noqa directives).
+    * R7.102 common.load_generator_checkpoint typed properly:
+      device: torch.device | str, log: Any.
+    * R7.103 common.run_generator_and_save typed properly:
+      generator: Voidface, config: VoidfaceConfig, clean: Tensor,
+      returns Tensor.
+
+    Session commit total: 159.
+
 
 Voidface 0.1.34 through 0.1.46 — 2026-07-05 — Phase R7.66 through R7.78
 
