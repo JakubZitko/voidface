@@ -1,6 +1,50 @@
 Voidface changelog. Newest at the top. Time flows downward.
 
 
+Voidface 0.0.16 — 2026-07-05 — Phase R5.4a: ONNX export for the shipped generator
+
+    The generator can now be exported to a portable format. ONNX
+    Runtime consumes it on Windows and Linux; ONNX Runtime Web
+    consumes it in the browser demo with the WebGPU execution
+    provider. CoreML export for Apple Silicon lands in R5.4b.
+
+    New:
+
+    * src/voidface/export/onnx.py — export_generator_to_onnx(
+        generator, output_path, example_resolution=256, opset=17,
+        dynamic_axes=True) — thin wrapper around torch.onnx.export
+      that traces the generator on CPU at a fixed example
+      resolution and marks batch/height/width as dynamic axes so a
+      single .onnx file serves every input size. Opset 17 by default
+      — broadly supported by ONNX Runtime, and includes GridSample
+      for future R5.5 semantic-warp experiments.
+
+    Dep footprint:
+
+    * onnx and onnxruntime pinned in [export]. Intel-Mac
+      compatibility ceiling on onnxruntime: <1.20. coremltools
+      constrained to Apple Silicon macOS (arm64) — Intel Macs use
+      the ONNX path.
+
+    Tests:
+
+    * tests/unit/test_onnx_export.py — 3 tests:
+        - Export produces a non-empty .onnx file at the target path.
+        - ONNX Runtime output matches the PyTorch reference to
+          within 1e-4 atol / rtol (parity check).
+        - dynamic_axes=True produces a graph that traces at 32x32
+          but runs correctly at 64x64.
+    * Suite is 72 tests, all passing.
+
+    What R5.4a explicitly does NOT ship:
+
+    * ORT-Web .ort conversion for the browser build (R5.4c).
+    * CoreML .mlpackage export (R5.4b — coremltools is Apple Silicon
+      only, so this session cannot exercise it).
+    * int8 quantization (R5.4d — reduces the shipped file from ~21 MB
+      fp32 to ~5.5 MB int8; requires a small calibration corpus).
+
+
 Voidface 0.0.15 — 2026-07-05 — Phase R5.3b: voidface train CLI subcommand
 
     The training loop is now one command away. `voidface train

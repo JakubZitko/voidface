@@ -74,8 +74,11 @@ train = [
 ]
 export = [
     "onnx>=1.16",
-    "onnxruntime>=1.19",
-    "coremltools>=8.0; platform_system=='Darwin'",
+    # ORT dropped Intel-Mac wheels around 1.20; pin below that on
+    # Intel Mac to keep the export path testable on legacy hardware.
+    "onnxruntime>=1.19,<1.20; sys_platform == 'darwin' and platform_machine == 'x86_64'",
+    "onnxruntime>=1.19; sys_platform != 'darwin' or platform_machine != 'x86_64'",
+    "coremltools>=8.0; platform_system=='Darwin' and platform_machine == 'arm64'",
 ]
 dev = [
     "ruff>=0.5",
