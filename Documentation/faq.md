@@ -83,11 +83,21 @@ archive the original locally.
         --use-generator voidface.pt \\
         --refine-steps 20 \\
         --face-mask \\
-        --semantic-warp 2.0
+        --semantic-warp 2.0 \\
+        --iris-boost
 
-Roughly 15 seconds per photo. Composes the deploy-quality G forward
-pass with 20 PGD refinement steps, sub-pixel geometric warp, and
-face-region masking.
+Roughly 15 seconds per photo. Composes:
+
+- Deploy-quality G forward pass as the warm start.
+- 20 PGD refinement steps against the loaded ensemble.
+- Sub-pixel geometric warp — humans do not see ~2 px shifts.
+- Face-region masking — perturbation restricted to the face.
+- Iris budget boost — the iris takes a locally higher L-inf ceiling
+  (default 2x). Face recognizers assign heavy weight to iris
+  texture; humans do not see sub-millimeter iris changes.
+
+Pass `--dump-iris-mask mask.png` alongside to inspect the computed
+iris mask.
 
 ## Is it safe to share protected photos on social media?
 
