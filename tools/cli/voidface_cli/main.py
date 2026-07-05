@@ -49,6 +49,8 @@ def main(argv: Sequence[str] | None = None) -> int:
         return _cmd_config_check(args)
     if args.command == "package":
         return _cmd_package(args)
+    if args.command == "init":
+        return _cmd_init(args)
 
     parser.print_help(sys.stderr)
     return 2
@@ -416,6 +418,28 @@ def _build_parser() -> argparse.ArgumentParser:
         help="Validate a training TOML config without running training.",
     )
     p_cc.add_argument("config", type=Path, help="Path to a training TOML.")
+
+    p_init = sub.add_parser(
+        "init",
+        help="Write a starter training TOML for a common scenario.",
+    )
+    p_init.add_argument(
+        "preset",
+        choices=["smoke", "full", "detector-only", "recognizer-only"],
+        help=(
+            "Preset shape. 'smoke' = fast local check with no external "
+            "weights. 'full' = the R5.5 reference (all targets + full "
+            "restorer mix + normalize_per_target). 'detector-only' and "
+            "'recognizer-only' are single-target experiments."
+        ),
+    )
+    p_init.add_argument(
+        "-o",
+        "--output",
+        type=Path,
+        default=None,
+        help="Where to write the TOML (default: stdout).",
+    )
 
     p_pkg = sub.add_parser(
         "package",
@@ -866,6 +890,178 @@ Validate a config:         voidface config-check samples/configs/train_full.toml
 
 Documentation/status.md is the authoritative "what ships today" reference.
 """
+
+
+_INIT_PRESETS: dict[str, str] = {
+    "smoke": """
+# Voidface smoke training TOML — fast local check, no external weight downloads.
+
+[experiment]
+name = "smoke"
+seed = 0
+steps = 20
+log_every = 5
+checkpoint_every = 20
+
+[data]
+directory = "samples/images"
+resolution = 64
+batch_size = 1
+augment = false
+
+[optim]
+learning_rate = 1e-3
+weight_decay = 1e-6
+epsilon_frac = 0.047
+
+[loss.perceptual]
+lpips_weight = 0.0
+tv_weight = 0.01
+
+[eot]
+k = 1
+
+[restorers]
+identity = 1.0
+""",
+    "full": """
+# Voidface full training TOML — the R5.5 reference config.
+
+[experiment]
+name = "full-ensemble"
+seed = 0
+steps = 300_000
+log_every = 100
+checkpoint_every = 5_000
+checkpoint_dir = "runs/full-ensemble"
+
+[data]
+directory = "~/data/ffhq"
+resolution = 512
+batch_size = 16
+augment = true
+
+[optim]
+learning_rate = 1e-4
+weight_decay = 1e-6
+epsilon_frac = 0.047
+eot_samples = 4
+
+[loss]
+bilevel_lpips = 0.05
+normalize_per_target = true
+normalization_ema_decay = 0.99
+
+[loss.perceptual]
+lpips_weight = 0.10
+tv_weight = 0.01
+
+[eot]
+k = 4
+jpeg_qualities = [40, 55, 70, 85, 95]
+resize_factors = [0.5, 0.75, 1.0, 1.5, 2.0]
+gaussian_sigma = [0.0, 0.5, 1.0, 1.5]
+
+[targets.detector]
+enabled = true
+weight = 0.35
+
+[targets.recognizer]
+enabled = true
+weight = 0.40
+
+[targets.vae]
+enabled = true
+weight = 0.20
+
+[targets.sdxl-vae]
+enabled = true
+weight = 0.15
+
+[targets.openclip]
+enabled = true
+weight = 0.10
+
+[restorers]
+identity = 0.10
+"sd15-vae" = 0.30
+gfpgan = 0.60
+""",
+    "detector-only": """
+# Voidface detector-only training TOML — attack RetinaFace.
+
+[experiment]
+name = "detector-only"
+steps = 50_000
+
+[data]
+directory = "~/data/ffhq"
+resolution = 256
+batch_size = 8
+
+[optim]
+learning_rate = 1e-4
+epsilon_frac = 0.047
+
+[loss.perceptual]
+lpips_weight = 0.10
+tv_weight = 0.01
+
+[eot]
+k = 4
+jpeg_qualities = [55, 75, 95]
+
+[targets.detector]
+enabled = true
+weight = 1.0
+
+[restorers]
+identity = 1.0
+""",
+    "recognizer-only": """
+# Voidface recognizer-only training TOML — attack ArcFace.
+
+[experiment]
+name = "recognizer-only"
+steps = 50_000
+
+[data]
+directory = "~/data/ffhq"
+resolution = 256
+batch_size = 8
+
+[optim]
+learning_rate = 1e-4
+epsilon_frac = 0.047
+
+[loss.perceptual]
+lpips_weight = 0.10
+tv_weight = 0.01
+
+[eot]
+k = 4
+jpeg_qualities = [55, 75, 95]
+
+[targets.recognizer]
+enabled = true
+weight = 1.0
+
+[restorers]
+identity = 1.0
+""",
+}
+
+
+def _cmd_init(args: argparse.Namespace) -> int:
+    """Write a starter TOML for a common training scenario."""
+    text = _INIT_PRESETS[args.preset].lstrip("\n")
+    if args.output is not None:
+        args.output.parent.mkdir(parents=True, exist_ok=True)
+        args.output.write_text(text)
+        print(f"wrote {args.output}", file=sys.stderr)
+    else:
+        print(text)
+    return 0
 
 
 def _cmd_package(args: argparse.Namespace) -> int:
