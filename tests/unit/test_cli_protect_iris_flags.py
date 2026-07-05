@@ -39,3 +39,17 @@ def test_iris_ratio_overridable(parser: argparse.ArgumentParser) -> None:
     )
     assert args.iris_boost is True
     assert args.iris_ratio == 3.0
+
+
+def test_dump_iris_mask_defaults_none(parser: argparse.ArgumentParser) -> None:
+    args = parser.parse_args(["protect", "input.jpg"])
+    assert args.dump_iris_mask is None
+
+
+def test_dump_iris_mask_accepts_path(parser: argparse.ArgumentParser) -> None:
+    from pathlib import Path
+
+    args = parser.parse_args(
+        ["protect", "input.jpg", "--iris-boost", "--dump-iris-mask", "out/mask.png"]
+    )
+    assert args.dump_iris_mask == Path("out/mask.png")

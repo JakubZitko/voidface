@@ -438,6 +438,12 @@ def run(args: argparse.Namespace) -> int:  # noqa: PLR0911
                 ratio=args.iris_ratio,
                 mask_coverage=float(iris_mask.mean().item()),
             )
+            if getattr(args, "dump_iris_mask", None) is not None:
+                args.dump_iris_mask.parent.mkdir(parents=True, exist_ok=True)
+                # Broadcast (N, 1, H, W) -> (3, H, W) grayscale for save_image.
+                mask_rgb = iris_mask[0].expand(3, -1, -1)
+                save_image(mask_rgb, args.dump_iris_mask)
+                log.info("iris_boost.mask_dumped", path=str(args.dump_iris_mask))
 
     result = run_pgd(
         clean=clean,

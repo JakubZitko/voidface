@@ -207,6 +207,18 @@ def _build_parser() -> argparse.ArgumentParser:
         ),
     )
     p_protect.add_argument(
+        "--dump-iris-mask",
+        type=Path,
+        default=None,
+        metavar="PATH",
+        help=(
+            "Diagnostic: save the computed iris mask as an 8-bit PNG "
+            "at PATH before PGD starts. Useful for verifying the "
+            "detector picked reasonable landmarks. Ignored when "
+            "--iris-boost is off or no face is detected."
+        ),
+    )
+    p_protect.add_argument(
         "--refine-steps",
         type=int,
         default=0,
