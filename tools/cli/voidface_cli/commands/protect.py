@@ -259,6 +259,14 @@ def run(args: argparse.Namespace) -> int:  # noqa: PLR0911
         )
         return 2
 
+    if args.epsilon < 1 or args.epsilon > 255:
+        log.error(
+            "epsilon.out_of_range",
+            got=args.epsilon,
+            hint="--epsilon is expressed as N/255; use 1-255 (typical 8-16)",
+        )
+        return 2
+
     device = resolve_device(args.device)
     log.info("device.selected", device=str(device))
 

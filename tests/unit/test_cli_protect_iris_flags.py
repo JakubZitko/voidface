@@ -81,3 +81,17 @@ def test_negative_semantic_warp_rejected(tmp_path) -> None:  # noqa: ANN001
         ]
     )
     assert rc == 2
+
+
+def test_epsilon_out_of_range_rejected(tmp_path) -> None:  # noqa: ANN001
+    """--epsilon is N/255; values below 1 or above 255 are rejected."""
+    from voidface_cli.main import main
+
+    img = tmp_path / "x.png"
+    img.write_bytes(b"not a real image")
+    # 0 is degenerate (no perturbation).
+    assert main(["protect", str(img), "--epsilon", "0"]) == 2
+    # 256 exceeds byte range.
+    assert main(["protect", str(img), "--epsilon", "256"]) == 2
+    # Negative is nonsensical.
+    assert main(["protect", str(img), "--epsilon", "-5"]) == 2
