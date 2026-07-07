@@ -42,7 +42,7 @@ __all__ = ["Arcface"]
 
 _INPUT_SIZE = 112
 _MODEL_ID = "minchul/cvlface_arcface_ir101_webface4m"
-_WEIGHTS_FILENAME = "model.pt"
+_WEIGHTS_FILENAME = "model.safetensors"
 
 
 class Arcface(nn.Module):
@@ -116,12 +116,16 @@ def _load_iresnet100_with_weights(model_id: str, device: torch.device):
     from huggingface_hub import hf_hub_download
 
     weights_path = hf_hub_download(repo_id=model_id, filename=_WEIGHTS_FILENAME)
-    # cvlface ships a torch pickle; safetensors mirror not published
-    # for this exact repo. We accept the .pt with weights_only=False
-    # explicitly — the alternative (raw safetensors mirror) is on the
-    # R5 self-hosting TODO. See risks in Phase R4 CHANGELOG.
-    raw = torch.load(weights_path, map_location=device, weights_only=False)
-    state_dict = _extract_state_dict(raw)
+    # cvlface flipped from model.pt (torch pickle) to model.safetensors
+    # sometime in 2026. Prefer safetensors (safe + fast), fall back to
+    # the pickle path if a caller pins a legacy weights filename.
+    if weights_path.endswith(".safetensors"):
+        from safetensors.torch import load_file  # noqa: PLC0415
+
+        state_dict = load_file(weights_path, device=str(device))
+    else:
+        raw = torch.load(weights_path, map_location=device, weights_only=False)
+        state_dict = _extract_state_dict(raw)
     normalized = _normalize_arcface_state_dict(state_dict)
 
     net = iresnet100().to(device)
