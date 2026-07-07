@@ -21,6 +21,13 @@ alpha_num = 2
 alpha_den = 255
 steps = 300
 momentum = 0.9
+# When true, the GFPGAN restorer wraps its U-Net encoder ResBlocks
+# and its StyleGAN2 decoder synthesis blocks in
+# ``torch.utils.checkpoint.checkpoint``. Roughly halves the peak
+# activation memory of a bilevel restorer forward at the cost of
+# ~30% extra backward compute — essential for fitting the real
+# GFPGAN forward + backward on a 16 GB Kaggle P100.
+gradient_checkpointing = true
 
 [loss]
 # Adversarial LPIPS between restorer(clean) and restorer(perturbed).

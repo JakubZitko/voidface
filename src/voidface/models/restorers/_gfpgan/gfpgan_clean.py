@@ -25,6 +25,7 @@ import random
 import torch
 from torch import nn
 from torch.nn import functional as F
+from torch.utils.checkpoint import checkpoint
 from ._basicsr_shims import ARCH_REGISTRY
 
 from .stylegan2_clean import StyleGAN2GeneratorClean
@@ -52,6 +53,9 @@ class StyleGAN2GeneratorCSFT(StyleGAN2GeneratorClean):
             channel_multiplier=channel_multiplier,
             narrow=narrow)
         self.sft_half = sft_half
+        # Voidface addition. Flipped on by the parent ``GFPGANv1Clean``
+        # (or directly by ``GfpganRestorer``) when memory is tight.
+        self.gradient_checkpointing = False
 
     def forward(self,
                 styles,
@@ -112,23 +116,47 @@ class StyleGAN2GeneratorCSFT(StyleGAN2GeneratorClean):
         out = self.style_conv1(out, latent[:, 0], noise=noise[0])
         skip = self.to_rgb1(out, latent[:, 1])
 
+        # Voidface addition: optional gradient checkpointing over each
+        # (style_conv1, SFT, style_conv2, to_rgb) super-block. The
+        # StyleGAN2 decoder is the biggest activation-memory consumer in
+        # the bilevel restorer loop; wrapping each iteration lets us fit
+        # a real GFPGAN forward + backward on a 16 GB GPU. Requires
+        # ``randomize_noise=False`` (the noise buffers must be
+        # deterministic across forward + recompute) — this is how
+        # ``GfpganRestorer`` calls the decoder in practice.
+        use_gc = getattr(self, 'gradient_checkpointing', False) and torch.is_grad_enabled()
+
         i = 1
         for conv1, conv2, noise1, noise2, to_rgb in zip(self.style_convs[::2], self.style_convs[1::2], noise[1::2],
                                                         noise[2::2], self.to_rgbs):
-            out = conv1(out, latent[:, i], noise=noise1)
+            # Closure captures the modules + per-iteration indices and
+            # the latent/conditions tensors. Only ``out`` and ``skip``
+            # are passed as explicit checkpoint args because they are
+            # the only tensors that change per iteration; the captured
+            # tensors participate in gradient propagation normally under
+            # ``use_reentrant=False``.
+            def _decoder_block(out_in, skip_in,
+                               _conv1=conv1, _conv2=conv2,
+                               _noise1=noise1, _noise2=noise2,
+                               _to_rgb=to_rgb, _i=i,
+                               _sft_half=self.sft_half,
+                               _latent=latent, _conditions=conditions):
+                out_ = _conv1(out_in, _latent[:, _i], noise=_noise1)
+                if _i < len(_conditions):
+                    if _sft_half:
+                        out_same, out_sft = torch.split(out_, int(out_.size(1) // 2), dim=1)
+                        out_sft = out_sft * _conditions[_i - 1] + _conditions[_i]
+                        out_ = torch.cat([out_same, out_sft], dim=1)
+                    else:
+                        out_ = out_ * _conditions[_i - 1] + _conditions[_i]
+                out_ = _conv2(out_, _latent[:, _i + 1], noise=_noise2)
+                skip_ = _to_rgb(out_, _latent[:, _i + 2], skip_in)
+                return out_, skip_
 
-            # the conditions may have fewer levels
-            if i < len(conditions):
-                # SFT part to combine the conditions
-                if self.sft_half:  # only apply SFT to half of the channels
-                    out_same, out_sft = torch.split(out, int(out.size(1) // 2), dim=1)
-                    out_sft = out_sft * conditions[i - 1] + conditions[i]
-                    out = torch.cat([out_same, out_sft], dim=1)
-                else:  # apply SFT to all the channels
-                    out = out * conditions[i - 1] + conditions[i]
-
-            out = conv2(out, latent[:, i + 1], noise=noise2)
-            skip = to_rgb(out, latent[:, i + 2], skip)  # feature back to the rgb space
+            if use_gc:
+                out, skip = checkpoint(_decoder_block, out, skip, use_reentrant=False)
+            else:
+                out, skip = _decoder_block(out, skip)
             i += 2
 
         image = skip
@@ -211,6 +239,13 @@ class GFPGANv1Clean(nn.Module):
         self.input_is_latent = input_is_latent
         self.different_w = different_w
         self.num_style_feat = num_style_feat
+        # Voidface addition. When True, the encoder ResBlocks + the
+        # StyleGAN2 decoder synthesis blocks are wrapped in
+        # ``torch.utils.checkpoint.checkpoint`` so intermediate
+        # activations are recomputed during backward. Set via
+        # :class:`voidface.models.restorers.gfpgan.GfpganRestorer`'s
+        # ``gradient_checkpointing`` flag.
+        self.gradient_checkpointing = False
 
         unet_narrow = narrow * 0.5  # by default, use a half of input channels
         channels = {
@@ -309,10 +344,19 @@ class GFPGANv1Clean(nn.Module):
         unet_skips = []
         out_rgbs = []
 
+        # Voidface addition: gradient-checkpoint the encoder and
+        # decoder ResBlocks when requested. This complements the
+        # checkpointing inside the StyleGAN2 decoder for a full VRAM
+        # halving on the bilevel restorer forward.
+        use_gc = self.gradient_checkpointing and torch.is_grad_enabled()
+
         # encoder
         feat = F.leaky_relu_(self.conv_body_first(x), negative_slope=0.2)
         for i in range(self.log_size - 2):
-            feat = self.conv_body_down[i](feat)
+            if use_gc:
+                feat = checkpoint(self.conv_body_down[i], feat, use_reentrant=False)
+            else:
+                feat = self.conv_body_down[i](feat)
             unet_skips.insert(0, feat)
         feat = F.leaky_relu_(self.final_conv(feat), negative_slope=0.2)
 
@@ -321,12 +365,19 @@ class GFPGANv1Clean(nn.Module):
         if self.different_w:
             style_code = style_code.view(style_code.size(0), -1, self.num_style_feat)
 
+        # propagate the flag onto the decoder so its per-block
+        # checkpointing lights up too.
+        self.stylegan_decoder.gradient_checkpointing = self.gradient_checkpointing
+
         # decode
         for i in range(self.log_size - 2):
             # add unet skip
             feat = feat + unet_skips[i]
             # ResUpLayer
-            feat = self.conv_body_up[i](feat)
+            if use_gc:
+                feat = checkpoint(self.conv_body_up[i], feat, use_reentrant=False)
+            else:
+                feat = self.conv_body_up[i](feat)
             # generate scale and shift for SFT layers
             scale = self.condition_scale[i](feat)
             conditions.append(scale.clone())

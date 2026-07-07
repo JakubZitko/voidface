@@ -55,6 +55,15 @@ class TrainConfig:
     checkpoint_dir: Path | None = None
     device: str = "cpu"
     seed: int = 0
+    # When True, downstream restorers (currently only GFPGAN) are
+    # asked to wrap their heaviest blocks in
+    # ``torch.utils.checkpoint.checkpoint`` so intermediate
+    # activations are recomputed during backward. Trades ~30% extra
+    # backward compute for a ~2x drop in peak activation memory —
+    # essential for fitting the real GFPGAN restorer in the bilevel
+    # inner loop onto a 16 GB Kaggle P100. Read from
+    # ``[optim].gradient_checkpointing`` in the training TOML.
+    gradient_checkpointing: bool = False
 
 
 @dataclass

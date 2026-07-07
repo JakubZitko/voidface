@@ -1,0 +1,13 @@
+flowchart LR
+    IN[x, 3xHxW] --> DOWN1[Conv 3->64<br/>GroupNorm+GELU]
+    DOWN1 --> DOWN2[Down block<br/>64->128]
+    DOWN2 --> DOWN3[Down block<br/>128->256]
+    DOWN3 --> MID[2x Residual<br/>GN+GELU]
+    MID --> UP1[Up block<br/>256->128<br/>+ skip]
+    DOWN2 --> UP1
+    UP1 --> UP2[Up block<br/>128->64<br/>+ skip]
+    DOWN1 --> UP2
+    UP2 --> OUT_CONV[Conv 64->3]
+    OUT_CONV --> TANH[tanh]
+    TANH --> SCALE[* eps]
+    SCALE --> DELTA[delta, bounded by eps]

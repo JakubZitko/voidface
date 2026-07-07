@@ -1,0 +1,26 @@
+flowchart TB
+    X[clean image x] --> G[Generator G_phi<br/>~5.35M params, U-Net]
+    G --> DELTA[tanh-projected delta<br/>bounded by eps]
+    X --> ADD((+))
+    DELTA --> ADD
+    ADD --> XP[perturbed x + delta]
+    XP --> EOT[EOT wrapper T<br/>resize / blur / diff-JPEG]
+    EOT --> TARGETS{Ensemble surrogates}
+    TARGETS --> RET[RetinaFace R50<br/>detection loss]
+    TARGETS --> ARC[ArcFace IR-100<br/>ID cosine loss]
+    TARGETS --> SD15[SD 1.5 VAE<br/>gray-latent loss]
+    TARGETS --> SDXL[SDXL VAE<br/>gray-latent loss]
+    TARGETS --> CLIP[CLIP ViT-B/32<br/>cosine loss]
+    XP --> RSAMP[RestorerSampler<br/>identity / SD1.5-VAE / GFPGAN 1.4]
+    RSAMP --> RXP[R x + delta]
+    X --> RSAMP2[same R]
+    RSAMP2 --> RX[R x]
+    RXP --> LPIPS[LPIPS distance]
+    RX --> LPIPS
+    LPIPS -->|negative weight| LOSS
+    RET --> LOSS[CompositeLoss L]
+    ARC --> LOSS
+    SD15 --> LOSS
+    SDXL --> LOSS
+    CLIP --> LOSS
+    LOSS -->|backprop| G

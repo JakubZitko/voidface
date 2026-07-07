@@ -1,0 +1,212 @@
+# SPDX-License-Identifier: MIT
+#
+# Reduced-scope training config for Kaggle Notebooks (free tier).
+#
+# Target hardware: 1 x NVIDIA Tesla P100 16 GB (Kaggle's default GPU
+# accelerator; the T4 x2 slot has 2 x 16 GB but P100 is what an API-
+# submitted kernel with `enable_gpu:true` actually gets). Kaggle's
+# weekly GPU quota is ~30 h and a single session caps at 12 h wall
+# clock, so this config is deliberately trimmed vs `train_full.toml`.
+#
+# Purpose of this file
+# --------------------
+# This is the MVP "grant application" run — enough training to
+# demonstrate the bilevel + GFPGAN inner-loop objective is learning
+# something, not the full 200k-step R5.5 ship candidate. Two things
+# fall out of that:
+#
+#   * The target ensemble is trimmed to 3 families (detector +
+#     recognizer + one VAE). SDXL-VAE and OpenCLIP are disabled.
+#     Together those two are ~1.6 GB of extra weights and ~2-3 GB
+#     of activation memory at res 384 — cutting them is what fits
+#     GFPGAN into a 16 GB card.
+#   * Steps = 30k instead of 200k. At an estimated ~4 s/step on P100
+#     that lands around 33 wall-clock hours, i.e. ~3 Kaggle sessions
+#     spread across the 30 h/week free quota. See
+#     Documentation/training/overview.md and the checkpoint-resume
+#     pattern in the notebook harness.
+#
+# See also:
+#   * samples/configs/train_full.toml      — R5.5 reference
+#   * Documentation/training/overview.md
+#   * Documentation/training/bilevel-adversarial.md
+#   * Documentation/training/normalize.md
+
+[experiment]
+name = "kaggle-p100-mvp"
+seed = 0
+# 30k steps is the grant-application MVP scope — enough to see the
+# bilevel objective clearly separating from the ensemble baseline in
+# eval, not enough for a shipped generator. R5.5 uses 200k.
+steps = 30_000
+# Log a compact per-step line every 25 steps. At ~4 s/step that's a
+# heartbeat every ~100 s — often enough to spot NaNs or restorer
+# skew early, sparse enough not to bloat the Kaggle notebook output.
+log_every = 25
+# Checkpoint every 500 steps. Two reasons:
+#   * At ~4 s/step, 500 steps = ~30 min of compute — matches the
+#     "save every N steps AND every ~20 min, whichever sooner" rule
+#     the resume harness assumes.
+#   * A 5.35M-param G checkpoint is <50 MB — cheap to keep, cheap
+#     to push to a Kaggle Dataset between sessions.
+checkpoint_every = 500
+# Write checkpoints under Kaggle's per-session writable dir. The
+# notebook harness rotates the last N of these into a Kaggle
+# Dataset version at session end so nothing is lost when the 12 h
+# ceiling kills the kernel.
+checkpoint_dir = "/kaggle/working/runs/kaggle-p100-mvp"
+
+[data]
+# Attach `chelove4draste/ffhq-512x512` in the notebook sidebar (see
+# +Add Input). Kaggle mounts it read-only at the path below and
+# `FolderImageDataset` walks it directly — no copy step required.
+directory = "/kaggle/input/ffhq-512x512"
+# 384 instead of 512. Activation memory scales ~quadratically with
+# H*W: (384/512)^2 ~= 0.56, so we drop to ~56% of the res-512
+# activation footprint. Combined with gradient checkpointing this
+# is what fits GFPGAN's StyleGAN2 decoder inside 16 GB.
+resolution = 384
+# Batch 2. Anything larger OOMs on P100 with the full bilevel graph
+# (G + surrogate ensemble + GFPGAN inner rollout), even with grad
+# ckpt. If effective batch matters for signal quality, do gradient
+# accumulation in the training loop rather than raising this.
+batch_size = 2
+# Keep augmentation on — the whole point of EOT + augment is
+# generalization across capture pipelines.
+augment = true
+
+[optim]
+# LR unchanged from R5.5 — this config only shrinks scope, not the
+# optimization landscape. A shorter run at a higher LR would risk
+# under-fitting the bilevel signal (GFPGAN's gradient path is the
+# slow one to converge).
+learning_rate = 1e-4
+weight_decay = 1e-6
+# 12/255 = 0.047 — the standard PGD perturbation budget across all
+# voidface configs. Governs the tanh projection radius in the G
+# architecture; keep it in sync with the ensemble baseline so
+# eval numbers are comparable to R5.5.
+epsilon_frac = 0.047
+# 2 EOT samples per step is the sensible default at this scope.
+# R5.5 uses k=4 in [eot] below (which overrides this). Keeping
+# both consistent so a reader isn't confused if they read only one.
+eot_samples = 2
+# Gradient checkpointing on the StyleGAN2 synthesis blocks (inside
+# GFPGAN) and on G's mid+decoder blocks. Trades ~30% more compute
+# per step for ~40-55% less activation memory — a great deal on
+# P100 where we're memory-bound, not compute-bound. Consumed by
+# the training harness (see the gradient-checkpointing commit);
+# older builds silently ignore this key.
+gradient_checkpointing = true
+
+[loss]
+# Bilevel LPIPS between restorer(clean) and restorer(perturbed).
+# MAXIMIZED (enters loss with a negative sign) — a delta that
+# survives GFPGAN restoration is exactly the thing we want.
+# Small weight so it complements the ensemble rather than
+# dominating it. Same value as train_full.toml.
+bilevel_lpips = 0.05
+
+# Per-target loss normalization. TRUE here because the mix of
+# scales in this config is worse than the full ensemble's:
+#
+#   * detector losses:  ~0.01 - 0.1
+#   * recognizer loss:  ~0.5 - 2.0
+#   * VAE gray-latent:  ~20 - 200
+#
+# Without normalization the VAE term would soak up ~99% of the
+# backpropagated gradient and the detector — which the R4 CEO
+# critic flagged as the pipeline's choke point — would learn
+# nothing. See Documentation/training/normalize.md.
+normalize_per_target = true
+normalization_ema_decay = 0.99
+
+[loss.perceptual]
+# LPIPS regularizer between clean and perturbed. Same weight as
+# R5.5; the perceptual budget is a property of the attack, not
+# the training schedule.
+lpips_weight = 0.10
+lpips_max = 0.05
+# Total-variation smoothing on the delta. Keeps the perturbation
+# perceptually organic instead of pixel-noise-shaped.
+tv_weight = 0.01
+
+# --- Target ensemble --------------------------------------------------
+#
+# Reduced from R5.5's 5 families to 3. The two families we drop
+# (SDXL-VAE and OpenCLIP) between them account for ~1.6 GB of
+# static weights and, more importantly, another two forward+
+# backward passes per step at res 384 — memory the GFPGAN inner
+# loop needs. The three we keep cover the three semantic axes
+# that actually matter for face-swap prevention: detection,
+# identity, and diffusion re-encoding.
+
+[targets.detector]
+# RetinaFace-R50. Also auto-loaded as GFPGAN's landmark provider
+# in the restorer block below, so it earns its keep twice.
+enabled = true
+weight = 0.35
+
+[targets.recognizer]
+# ArcFace-R100. The identity-suppression signal.
+enabled = true
+weight = 0.40
+
+[targets.vae]
+# SD 1.5 VAE gray-latent loss. Chosen over SDXL-VAE because it's
+# the smaller/faster of the two AND it's a prerequisite for the
+# `sd15-vae` restorer we enable below.
+enabled = true
+weight = 0.25
+
+[targets."sdxl-vae"]
+# Disabled to save ~600 MB weights + activations. SD 1.5 VAE
+# above covers the diffusion-re-encoding axis for MVP purposes.
+enabled = false
+
+[targets.openclip]
+# Disabled to save ~1 GB weights + a full ViT-B/32 forward pass
+# per step. Bring this back for the R5.5 full run.
+enabled = false
+
+# --- Restorer sampler -------------------------------------------------
+#
+# `RestorerSampler` picks one restorer per training step according
+# to these weights (auto-normalized to a probability distribution).
+# The bilevel LPIPS + restorer per-target loss then run through
+# that sampled restorer. Rationale for this mix:
+#
+#   * identity  = 0.4 — plain ensemble step, no restorer. Cheap,
+#                       and prevents the generator from over-
+#                       specializing to any single restorer's
+#                       artifacts.
+#   * sd15-vae  = 0.3 — the SD 1.5 VAE round-trip. Fast (~150 ms
+#                       fwd+bwd on P100 at res 384) and covers
+#                       the "attacker re-encodes through a
+#                       latent diffusion model" case.
+#   * gfpgan    = 0.3 — the real StyleGAN2 restorer. Slow
+#                       (~1.5-3 s fwd+bwd on P100 with grad ckpt)
+#                       and the memory hog. 30% sampling rate
+#                       keeps average step time under ~4 s while
+#                       still exposing G to enough restorer steps
+#                       to learn against it.
+#
+# The two Sd15Vae- and Gfpgan- restorers both require
+# [targets.vae] and [targets.detector] respectively — enabled
+# above.
+[restorers]
+identity = 0.4
+"sd15-vae" = 0.3
+gfpgan = 0.3
+
+# --- Expectation Over Transformation ---------------------------------
+#
+# EOT knobs match R5.5's shape at reduced budget. k=2 (not 4)
+# keeps per-step compute manageable on P100; the transformation
+# ranges are unchanged because the point of EOT is *coverage* of
+# the capture-pipeline distribution, not sample count.
+[eot]
+k = 2
+jpeg_qualities = [40, 70, 95]
+resize_factors = [0.75, 1.0, 1.5]
+gaussian_sigma = [0.0, 0.5, 1.0]

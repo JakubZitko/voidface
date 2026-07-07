@@ -226,7 +226,16 @@ def run(args: argparse.Namespace) -> int:
                 )
                 gfpgan_detector = RetinaFace(device=device)
             restorer_options.append(
-                (GfpganRestorer(detector=gfpgan_detector, device=device), w)
+                (
+                    GfpganRestorer(
+                        detector=gfpgan_detector,
+                        device=device,
+                        gradient_checkpointing=bool(
+                            optim_conf.get("gradient_checkpointing", False)
+                        ),
+                    ),
+                    w,
+                )
             )
         else:
             log.error("restorer.unknown", name=name)
@@ -248,6 +257,7 @@ def run(args: argparse.Namespace) -> int:
         else None,
         device=str(device),
         seed=effective_seed,
+        gradient_checkpointing=bool(optim_conf.get("gradient_checkpointing", False)),
     )
 
     log.info(

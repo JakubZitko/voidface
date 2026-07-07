@@ -75,6 +75,16 @@ class GfpganRestorer:
             output. If no anchor exceeds this, the restorer falls
             back to the identity map for that batch element and logs
             a warning.
+        gradient_checkpointing: When True, wraps the U-Net encoder
+            ResBlocks + the StyleGAN2 decoder synthesis blocks in
+            :func:`torch.utils.checkpoint.checkpoint` so intermediate
+            activations are recomputed during backward. Roughly halves
+            the peak activation memory of a bilevel restorer forward
+            at the cost of ~30% extra compute per backward. Off by
+            default for backward compatibility; the training config
+            path (``[optim].gradient_checkpointing``) is what flips it
+            on for cloud-GPU runs. See
+            ``Documentation/training/bilevel-adversarial.md``.
     """
 
     spec = RestorerSpec(
@@ -88,11 +98,25 @@ class GfpganRestorer:
         detector: RetinaFace,
         device: torch.device | str = "cpu",
         detector_score_threshold: float = 0.5,
+        gradient_checkpointing: bool = False,
     ) -> None:
         self._detector = detector
         self._device = torch.device(device)
         self._score_threshold = detector_score_threshold
+        self._gradient_checkpointing = bool(gradient_checkpointing)
         self._net = _load_gfpgan_v1_4_weights(_MODEL_ID, self._device)
+        # Propagate the flag onto the vendored architecture. The
+        # architecture reads it lazily inside forward, so re-assigning
+        # here also handles the case where a caller swaps the flag
+        # after construction (rare but supported).
+        self._net.gradient_checkpointing = self._gradient_checkpointing
+        # The StyleGAN2 decoder honours its own flag too — mirror it
+        # up front so the very first forward observes the intended
+        # state without depending on the parent forward setting it.
+        if hasattr(self._net, "stylegan_decoder"):
+            self._net.stylegan_decoder.gradient_checkpointing = (
+                self._gradient_checkpointing
+            )
 
     def __call__(self, image: Tensor) -> Tensor:
         """Restore ``image`` through the aligned GFPGAN forward.
