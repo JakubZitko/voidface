@@ -37,8 +37,8 @@ from voidface.models.detectors._retinaface_arch import RetinaFaceR50Arch
 __all__ = ["RetinaFace"]
 
 _INPUT_SIZE = 640
-_MODEL_ID = "yakhyo/retinaface-pytorch"
-_WEIGHTS_FILENAME = "retinaface_r50.pth"
+_MODEL_ID = "akhaliq/RetinaFace-R50"
+_WEIGHTS_FILENAME = "RetinaFace-R50.pth"
 # biubug6/InsightFace pretrained mean, per-channel, BGR order,
 # NO /255 divide — matches upstream training pipeline exactly.
 _PIXEL_MEAN = (104.0, 117.0, 123.0)
