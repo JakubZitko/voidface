@@ -53,7 +53,7 @@ def pick_top_landmarks(outputs, image: Tensor, threshold: float = 0.5) -> Tensor
     return _pick_top_landmarks(outputs, image, threshold)
 
 _OUT_SIZE = 512
-_MODEL_ID = "TencentARC/GFPGANv1"
+_MODEL_ID = "leonelhs/gfpgan"
 _WEIGHTS_FILENAME = "GFPGANv1.4.pth"
 # Pinned SHA-256 of the upstream GFPGANv1.4.pth release. When None,
 # the gate warns but proceeds — used during bring-up before the real
