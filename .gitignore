@@ -62,9 +62,9 @@ models/downloaded/
 .cache/
 .huggingface/
 
-# Data (never committed)
-data/
-datasets/
+# User data (never committed) — root-relative so we do not clobber src/voidface/data/
+/data/
+/datasets/
 
 # Rust / Cargo
 target/
